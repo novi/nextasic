@@ -67,4 +67,9 @@ set_global_assignment -name EDA_NATIVELINK_SIMULATION_TEST_BENCH nextasic -secti
 set_global_assignment -name EDA_TEST_BENCH_NAME nextasic -section_id eda_simulation
 set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME nextasic -section_id nextasic
+set_global_assignment -name VERILOG_FILE debug_data_sender.v
 set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
+set_location_assignment PIN_14 -to debug_clk
+set_location_assignment PIN_15 -to debug_sig_on
+set_location_assignment PIN_16 -to debug_sout

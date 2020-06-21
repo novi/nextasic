@@ -5,28 +5,31 @@ module Receiver(
 	input wire clk,
 	input wire si, // serial in
 	output reg [39:0] data = 0, // 10bytes(40bits)
-	output reg data_recv = 0
+	output wire data_recv_flag
 );
 
 	reg state = `READY;
-	reg [5:0] count = 0; // range 0 to 41
+	reg unsigned [5:0] count = 0; // range 0 to 40
+	
+	assign data_recv_flag = (count == 5'd40 || count == 5'd41) ? 1'b1 : 1'b0;
 	
 	always@ (posedge clk) begin
-		data_recv <= 0;
 		case (state)
 			`READY : if (si == 1) state <= `READ;
 			`READ :
-				if (count == 40)
-					begin
+				case (count)
+					41: begin
 						state <= `READY;
 						count <= 0;
-						data_recv <= 1;
 					end
-				else
-					begin
+					40: begin
+						count <= count + 1'b1;
+					end
+					default: begin
 						data[39:0] <= {data[38:0], si};
-						count <= count + 1;
+						count <= count + 1'b1;
 					end
+				endcase
 		endcase
 	end
 
