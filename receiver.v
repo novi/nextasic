@@ -9,7 +9,7 @@ module Receiver(
 );
 
 	reg state = `READY;
-	integer count = 0;
+	reg [5:0] count = 0; // range 0 to 41
 	
 	always@ (posedge clk) begin
 		data_recv <= 0;
@@ -113,6 +113,8 @@ module test_Receiver;
 		#CLOCK;
 		#CLOCK;
 		#CLOCK $stop;
+		
+		// TODO: check output
 	
 	end
 
