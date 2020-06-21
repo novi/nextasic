@@ -92,7 +92,15 @@ module test_DebugDataSender;
 		#IN_CLOCK in_latch = 1;
 		#IN_CLOCK in_latch = 0;
 		
-		#(OUT_CLOCK*40);
+		#(OUT_CLOCK*41);
+		
+		#(OUT_CLOCK*5);
+		
+		data = 40'b1110100110011001100110011001100110010011;
+		#IN_CLOCK in_latch = 1;
+		#IN_CLOCK in_latch = 0;
+		
+		#(OUT_CLOCK*41);
 		
 		#(OUT_CLOCK*5);
 		
