@@ -7,6 +7,7 @@ module DebugDataSender(
 	input store,
 	input [39:0] data,
 	output reg state = `EMPTY,
+	output wire in_state_out,
 	
 	input wire out_clk,
 	output wire sout
@@ -20,6 +21,8 @@ module DebugDataSender(
 	reg wait_for_empty = 0;
 	
 	assign sout = stored[0];
+	
+	assign in_state_out = in_state;
 	
 
 	always@ (posedge out_clk) begin
@@ -70,15 +73,17 @@ module test_DebugDataSender;
 	reg [39:0] data;
 	wire sout;
 	wire state;
+	wire int_state;
 
 	parameter IN_CLOCK = 100;
-	parameter OUT_CLOCK = 300; 	
+	parameter OUT_CLOCK = 270; 	
 
 	DebugDataSender sender(
 		in_clk,
 		in_latch,
 		data,
 		state,
+		int_state,
 		out_clk,
 		sout
 	);

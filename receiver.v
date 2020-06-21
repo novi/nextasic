@@ -11,7 +11,16 @@ module Receiver(
 	reg state = `READY;
 	reg unsigned [5:0] count = 0; // range 0 to 40
 	
-	assign data_recv_flag = (count == 5'd40 || count == 5'd41) ? 1'b1 : 1'b0;
+	reg flag_valid = 0;
+	
+	assign data_recv_flag = flag_valid;
+	
+	always@ (negedge clk) begin
+		if (count == 40)
+			flag_valid <= 1;
+		if (count == 41)
+			flag_valid <= 0;
+	end
 	
 	always@ (posedge clk) begin
 		case (state)
@@ -115,6 +124,65 @@ module test_Receiver;
 		#CLOCK;
 		#CLOCK;
 		#CLOCK;
+		
+		
+		#CLOCK sin = 1; // first, will be dropped
+		
+		#CLOCK sin = 1;
+		#CLOCK sin = 0;
+		#CLOCK sin = 1;
+		#CLOCK sin = 0;
+		
+		#CLOCK sin = 1; 
+		#CLOCK sin = 0;
+		#CLOCK sin = 0;
+		#CLOCK sin = 1;
+		
+		#CLOCK sin = 1; 
+		#CLOCK sin = 1;
+		#CLOCK sin = 1;
+		#CLOCK sin = 1;
+		
+		#CLOCK sin = 0; 
+		#CLOCK sin = 0;
+		#CLOCK sin = 0;
+		#CLOCK sin = 0;
+		
+		#CLOCK sin = 1; 
+		#CLOCK sin = 0;
+		#CLOCK sin = 1;
+		#CLOCK sin = 0;
+		
+		#CLOCK sin = 1; 
+		#CLOCK sin = 0;
+		#CLOCK sin = 1;
+		#CLOCK sin = 0;
+		
+		#CLOCK sin = 1; 
+		#CLOCK sin = 0;
+		#CLOCK sin = 1;
+		#CLOCK sin = 0;
+		
+		#CLOCK sin = 1; 
+		#CLOCK sin = 0;
+		#CLOCK sin = 1;
+		#CLOCK sin = 0;
+		
+		#CLOCK sin = 1; 
+		#CLOCK sin = 0;
+		#CLOCK sin = 1;
+		#CLOCK sin = 0;
+		
+		#CLOCK sin = 1; 
+		#CLOCK sin = 0;
+		#CLOCK sin = 0;
+		#CLOCK sin = 1; // last bit
+		
+		#CLOCK sin = 0;
+		
+		#(CLOCK*5);
+		
+		
 		#CLOCK $stop;
 		
 		// TODO: check output
