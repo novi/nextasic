@@ -8,16 +8,19 @@ module nextasic(
 	input wire debug_clk,
 	output wire debug_sout,
 	output wire debug_sig_on, // state
-	output wire debug_in_state
+	output wire debug_test_out_pin_1,
+	output wire debug_test_out_pin_2
 );
 
 	assign from_mon = 0;
 	
 	wire [39:0] data;
 	wire data_recv;
-	wire in_state;
+	wire debug_test_out_1;
+	wire debug_test_out_2;
 	
-	assign debug_in_state = ~in_state;
+	assign debug_test_out_pin_1 = ~debug_test_out_1;
+	assign debug_test_out_pin_2 = ~debug_test_out_2;
 	
 	Receiver receiver(
 		mon_clk,
@@ -31,7 +34,8 @@ module nextasic(
 		data_recv,
 		data,
 		debug_sig_on, // state
-		in_state,
+		debug_test_out_1,
+		debug_test_out_2,
 		debug_clk,
 		debug_sout
 	);

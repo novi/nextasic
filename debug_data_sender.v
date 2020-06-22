@@ -3,56 +3,59 @@
 
 
 module DebugDataSender(
-	input in_clk,
-	input store,
-	input [39:0] data,
-	output reg state = `EMPTY,
-	output wire in_state_out,
-	
+	input wire in_clk,
+	input wire store,
+	input wire [39:0] data,
+	output wire state_out,
+	output wire debug_test_out_1, // TODO: debug
+	output wire debug_test_out_2, // TODO: debug
 	input wire out_clk,
 	output wire sout
 );
 
 	reg [39:0] stored; // stored data
-	reg [39:0] tmp;
+	reg [39:0] tmp; // TODO: double FF?
 	reg in_state = `EMPTY;
 	reg unsigned [5:0] count = 0; // range 0 to ...
-	
+	reg state = `EMPTY; // TODO: use module params
 	reg wait_for_empty = 0;
 	
 	assign sout = stored[0];
 	
-	assign in_state_out = in_state;
+	assign debug_test_out_1 = in_state;
+	assign debug_test_out_2 = wait_for_empty;
+	assign state_out = state;
 	
+	reg in_state_ack = 0;
 
 	always@ (posedge out_clk) begin
-		if (in_state == `STORED) begin
-			if (count == 40)
-				begin
-					state <= `EMPTY;
-					count <= 0;
-				end
-			else
-				begin
-					if (count == 0) begin
-						stored <= tmp;
-						state <= `STORED;
-					end
-					else
-						stored[38:0] <= stored[39:1];
-					count <= count + 1'b1;
-				end
+		if (wait_for_empty == 1) begin
+			in_state_ack <= 0;
+		end
+		if (in_state == `STORED && state == `EMPTY) begin
+			in_state_ack <= 1;
+			state <= `STORED;
+			count <= 1;
+			stored <= tmp;
+		end else begin
+			if (count == 40) begin
+				state <= `EMPTY;
+			end else begin
+				stored[38:0] <= stored[39:1];
+				count <= count + 1'b1;
+			end
 		end
 	end
 	
 	always@ (posedge in_clk) begin
-		if (state == `STORED) begin
+		if (in_state_ack == 1) begin
 			wait_for_empty <= 1;
+			in_state <= `EMPTY;
 		end
-		if (wait_for_empty == 1) begin
-			in_state <= state;
+		if (wait_for_empty == 1 && state == `EMPTY) begin
+			wait_for_empty <= 0;
 		end
-		if (store == 1 && in_state == `EMPTY) begin
+		if (store == 1 && in_state == `EMPTY && wait_for_empty == 0) begin
 			tmp <= data;
 			in_state <= `STORED;
 		end
@@ -73,7 +76,8 @@ module test_DebugDataSender;
 	reg [39:0] data;
 	wire sout;
 	wire state;
-	wire int_state;
+	wire int_state_1;
+	wire int_state_2;
 
 	parameter IN_CLOCK = 100;
 	parameter OUT_CLOCK = 270; 	
@@ -83,7 +87,8 @@ module test_DebugDataSender;
 		in_latch,
 		data,
 		state,
-		int_state,
+		int_state_1,
+		int_state_2,
 		out_clk,
 		sout
 	);
