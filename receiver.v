@@ -35,7 +35,7 @@ module Receiver(
 						count <= count + 1'b1;
 					end
 					default: begin
-						data[39:0] <= {data[38:0], si};
+						data[39:0] <= {si, data[39:1]};
 						count <= count + 1'b1;
 					end
 				endcase
