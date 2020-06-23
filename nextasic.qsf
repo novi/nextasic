@@ -55,11 +55,9 @@ set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_
 set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_symbol
 set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_signal_integrity
 set_global_assignment -name EDA_GENERATE_FUNCTIONAL_NETLIST OFF -section_id eda_board_design_boundary_scan
-set_global_assignment -name VERILOG_FILE nextasic.v
 set_location_assignment PIN_1 -to mon_clk
 set_location_assignment PIN_5 -to from_mon
 set_location_assignment PIN_3 -to to_mon
-set_global_assignment -name VERILOG_FILE receiver.v
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "NO HEAT SINK WITH STILL AIR"
 set_global_assignment -name EDA_MAP_ILLEGAL_CHARACTERS ON -section_id eda_simulation
 set_global_assignment -name EDA_TEST_BENCH_ENABLE_STATUS TEST_BENCH_MODE -section_id eda_simulation
@@ -67,12 +65,16 @@ set_global_assignment -name EDA_NATIVELINK_SIMULATION_TEST_BENCH nextasic -secti
 set_global_assignment -name EDA_TEST_BENCH_NAME nextasic -section_id eda_simulation
 set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME nextasic -section_id nextasic
-set_global_assignment -name VERILOG_FILE debug_data_sender.v
-set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
-set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
 set_location_assignment PIN_19 -to debug_clk
 set_location_assignment PIN_15 -to debug_sig_on
 set_location_assignment PIN_17 -to debug_sout
 set_location_assignment PIN_12 -to dummy_clk
 set_location_assignment PIN_51 -to debug_test_out_pin_1
 set_location_assignment PIN_52 -to debug_test_out_pin_2
+set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE sender.v -section_id nextasic
+set_global_assignment -name VERILOG_FILE sender.v
+set_global_assignment -name VERILOG_FILE nextasic.v
+set_global_assignment -name VERILOG_FILE receiver.v
+set_global_assignment -name VERILOG_FILE debug_data_sender.v
