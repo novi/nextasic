@@ -1,14 +1,14 @@
-`define READY 1'b0 // define state
-`define READ 1'b1
-
 module Receiver(
 	input wire clk,
 	input wire si, // serial in
 	output reg [39:0] data = 0, // 10bytes(40bits)
 	output wire data_recv_flag
 );
+	
+	localparam READY = 1'b0; // define state
+	localparam READ = 1'b1;
 
-	reg state = `READY;
+	reg state = READY;
 	reg unsigned [5:0] count = 0; // range 0 to 40
 	
 	reg flag_valid = 0;
@@ -24,11 +24,11 @@ module Receiver(
 	
 	always@ (posedge clk) begin
 		case (state)
-			`READY : if (si == 1) state <= `READ;
-			`READ :
+			READY : if (si == 1) state <= READ;
+			READ :
 				case (count)
 					41: begin
-						state <= `READY;
+						state <= READY;
 						count <= 0;
 					end
 					40: begin
