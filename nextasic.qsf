@@ -66,15 +66,19 @@ set_global_assignment -name EDA_TEST_BENCH_NAME nextasic -section_id eda_simulat
 set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME nextasic -section_id nextasic
 set_location_assignment PIN_19 -to debug_clk
-set_location_assignment PIN_15 -to debug_sig_on
-set_location_assignment PIN_17 -to debug_sout
+set_location_assignment PIN_27 -to debug_sig_on
+set_location_assignment PIN_21 -to debug_sout
 set_location_assignment PIN_12 -to dummy_clk
 set_location_assignment PIN_51 -to debug_test_out_pin_1
 set_location_assignment PIN_52 -to debug_test_out_pin_2
-set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
-set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
-set_global_assignment -name EDA_TEST_BENCH_FILE sender.v -section_id nextasic
 set_global_assignment -name VERILOG_FILE sender.v
 set_global_assignment -name VERILOG_FILE nextasic.v
 set_global_assignment -name VERILOG_FILE receiver.v
 set_global_assignment -name VERILOG_FILE debug_data_sender.v
+set_global_assignment -name VERILOG_FILE debug_data_receiver.v
+set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE sender.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_receiver.v -section_id nextasic
+set_location_assignment PIN_17 -to debug_sin
+set_location_assignment PIN_15 -to debug_sin_start
