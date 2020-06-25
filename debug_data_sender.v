@@ -4,9 +4,9 @@
 
 module DebugDataSender(
 	input wire in_clk,
-	input wire store,
+	input wire data_valid, // data valid
 	input wire [39:0] data,
-	output wire state_out,
+	output reg state = `EMPTY,
 	output wire debug_test_out_1, // TODO: debug
 	output wire debug_test_out_2, // TODO: debug
 	input wire out_clk,
@@ -16,8 +16,7 @@ module DebugDataSender(
 	reg [39:0] stored; // stored data
 	reg [39:0] tmp; // TODO: double FF?
 	reg in_state = `EMPTY;
-	reg unsigned [5:0] count = 0; // range 0 to ...
-	reg state = `EMPTY; // TODO: use module params
+	reg [5:0] count = 0; // range 0 to ...
 	reg wait_for_empty = 0;
 	
 	assign sout = stored[0];
@@ -29,7 +28,7 @@ module DebugDataSender(
 	reg in_state_ack = 0;
 
 	always@ (posedge out_clk) begin
-		if (wait_for_empty == 1) begin
+		if (wait_for_empty) begin
 			in_state_ack <= 0;
 		end
 		if (in_state == `STORED && state == `EMPTY) begin
@@ -48,14 +47,14 @@ module DebugDataSender(
 	end
 	
 	always@ (posedge in_clk) begin
-		if (in_state_ack == 1) begin
+		if (in_state_ack) begin
 			wait_for_empty <= 1;
 			in_state <= `EMPTY;
 		end
-		if (wait_for_empty == 1 && state == `EMPTY) begin
+		if (wait_for_empty && state == `EMPTY) begin
 			wait_for_empty <= 0;
 		end
-		if (store == 1 && in_state == `EMPTY && wait_for_empty == 0) begin
+		if (data_valid && in_state == `EMPTY && wait_for_empty == 0) begin
 			tmp <= data;
 			in_state <= `STORED;
 		end
@@ -80,7 +79,7 @@ module test_DebugDataSender;
 	wire int_state_2;
 
 	parameter IN_CLOCK = 100;
-	parameter OUT_CLOCK = 270; 	
+	parameter OUT_CLOCK = IN_CLOCK*110; 	
 
 	DebugDataSender sender(
 		in_clk,
@@ -102,9 +101,14 @@ module test_DebugDataSender;
 		#IN_CLOCK in_latch = 1;
 		#IN_CLOCK in_latch = 0;
 		
-		#(OUT_CLOCK*41);
 		
-		#(OUT_CLOCK*5);
+		#(OUT_CLOCK*20);
+		data = 40'b1010100110011001100110011001100110000001;
+		#IN_CLOCK in_latch = 1;
+		#IN_CLOCK in_latch = 0;
+		#(OUT_CLOCK*20);
+		
+		#(OUT_CLOCK*7);
 		
 		data = 40'b1110100110011001100110011001100110010011;
 		#IN_CLOCK in_latch = 1;

@@ -2,7 +2,7 @@ module Receiver(
 	input wire clk,
 	input wire si, // serial in
 	output reg [39:0] data = 0, // 10bytes(40bits)
-	output wire data_recv_flag
+	output reg data_recv_valid = 0
 );
 	
 	localparam READY = 1'b0; // define state
@@ -11,15 +11,11 @@ module Receiver(
 	reg state = READY;
 	reg unsigned [5:0] count = 0; // range 0 to 40
 	
-	reg flag_valid = 0;
-	
-	assign data_recv_flag = flag_valid;
-	
 	always@ (negedge clk) begin
 		if (count == 40)
-			flag_valid <= 1;
+			data_recv_valid <= 1;
 		if (count == 41)
-			flag_valid <= 0;
+			data_recv_valid <= 0;
 	end
 	
 	always@ (posedge clk) begin
