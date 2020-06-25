@@ -28,7 +28,7 @@ const int GPIO_IN_RECV_BIT=22;	// pin 15
 const int GPIO_OUT_SEND_BIT=27;	// pin 13
 const int GPIO_OUT_DATA_BIT=17;	// pin 11
 
-const int CLOCK_WAIT = 5;
+const int CLOCK_WAIT = 1;
 
 #define PAGE_SIZE (4*1024)
 #define BLOCK_SIZE (4*1024)
@@ -264,13 +264,24 @@ int main(int argc, char **argv)
             printf("S"); // got sound sample
             break;
             case 0x23:
-            printf("sound setting 0x%02x 0x%02x 0x%02x 0x%02x\n", data[1], data[2], data[3], data[4]);
+            if (data[1] & 0x08) {
+                printf("sound mute\n");
+            }
+            if (data[2] == 0 && data[3] == 0 && data[4] == 0) {
+                printf("%02x ", data[1] & 0xf7);
+            } else {
+                printf("other sound setting 0x%02x 0x%02x 0x%02x 0x%02x\n", data[1], data[2], data[3], data[4]);
+            }
             break;
             case 0xa3:
             printf("keyboard LED 0x%02x 0x%02x 0x%02x 0x%02x\n", data[1], data[2], data[3], data[4]);
             break;
             default:
-            printf("unknown command 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", data[0], data[1], data[2], data[3], data[4]);
+            if (data[0] == 0x63 && data[1] == 0x80 && data[2] == 0xff && data[3] == 0xff && data[4] == 0x8f ) {
+                printf("ping?\n");
+            } else {
+                printf("unknown command 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", data[0], data[1], data[2], data[3], data[4]);
+            }
             break;
         }
     }
