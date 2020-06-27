@@ -84,7 +84,7 @@ void sendData(std::vector<uint8_t> data)
     for(uint8_t i=0; i<5;i++) {
         uint8_t d = data[i];
         for(uint8_t j=0; j<8; j++) {
-            SET_GPIO(GPIO_OUT_DATA_BIT, d & (1 << j) );
+            SET_GPIO(GPIO_OUT_DATA_BIT, d & (1 << (7-j)) ); // MSB first
             // printf("%d", d & (1 << j) ? 1 : 0);
             Realtime::delay(CLOCK_WAIT);
             SET_GPIO(GPIO_OUT_CLK_BIT, 1);
@@ -163,10 +163,8 @@ int main(int argc, char **argv)
         scanf("%d", &action);
         switch(action) {
             case 1:
-            sendData({0x63, 0x08, 0x00, 0x01, 0x5c}); // S key down
             break;
             case 2:
-            sendData({0x63, 0x08, 0x00, 0x01, 0x5d}); // S key up
             break;
             case 3:
             clock_gettime(CLOCK_MONOTONIC, &tstart);
@@ -177,34 +175,15 @@ int main(int argc, char **argv)
                 if (time > 19) {
                     break;
                 }
-                //sendData({0x63, 0x0a}); //reset packet A
-                //usleep(1000*1);
-                //sendData({0x63, 0x82}); //reset packet B
-                //usleep(1000*1);
-                //sendData({0x63, 0x8e}); //reset packet D
-                //usleep(1000*1);
-                sendData({0x63, 0x0e}); //reset packet F
+                sendData({0xc6, 0x70}); //reset packet F
                 usleep(1000*1);
             }
-            //usleep(1000*500); // 500ms
-            // printf("sending snd ack...\n");
-//             clock_gettime(CLOCK_MONOTONIC, &tstart);
-//             for(;;) {
-//                 clock_gettime(CLOCK_MONOTONIC, &tend);
-//                 double time = ((double)tend.tv_sec + 1.0e-9*tend.tv_nsec) -
-//                     ((double)tstart.tv_sec + 1.0e-9*tstart.tv_nsec);
-//                 if (time > 10) {
-//                     break;
-//                 }
-//                 sendData({0xe0});
-//                 sendData({0xf0});
-//             }
             break;
             
             case 4:
-            sendData({0x63, 0x08, 0x00, 0x01, 0x5c}); // S key down
+            sendData({0xc6, 0x10, 0x00, 0x80, 0x3a}); // S key down
             usleep(1000*10);
-            sendData({0x63, 0x08, 0x00, 0x01, 0x5d}); // S key up
+            sendData({0xc6, 0x10, 0x00, 0x80, 0x3a | 0x80}); // S key up
             break;
             
             case 5:
@@ -216,8 +195,8 @@ int main(int argc, char **argv)
                 if (time > 5) {
                     break;
                 }
-                sendData({0xe0});
-                sendData({0xf0});
+                sendData({0x07});
+                sendData({0x0f});
             }
             break;
         }
@@ -244,7 +223,7 @@ int main(int argc, char **argv)
             uint8_t d = 0;
             for(uint8_t j=0;j<8;j++) {
                 if (GET_GPIO(GPIO_IN_DATA_BIT))
-                    d |= 1 << j;
+                    d |= 1 << (7-j); // MSB first
                 SET_GPIO(GPIO_OUT_CLK_BIT, 0);
                 Realtime::delay(CLOCK_WAIT);
                 SET_GPIO(GPIO_OUT_CLK_BIT, 1);
@@ -252,32 +231,33 @@ int main(int argc, char **argv)
             }
             data[i] = d;
         }
+        SET_GPIO(GPIO_OUT_CLK_BIT, 0);
         //printBin(data);
         switch(data[0]) {
-            case 0xf0:
+            case 0x0f:
             printf("44k\n");
             break;
-            case 0xf8:
+            case 0x1f:
             printf("22k\n");
             break;
-            case 0xe3:
+            case 0xC7:
             printf("S"); // got sound sample
             break;
-            case 0x23:
-            if (data[1] & 0x08) {
-                printf("sound mute\n");
+            case 0xc4:
+            if (data[1] & 0x10) {
+                printf("sound mute 0x%02x 0x%02x 0x%02x 0x%02x\n", data[1], data[2], data[3], data[4]);
             }
             if (data[2] == 0 && data[3] == 0 && data[4] == 0) {
-                printf("%02x ", data[1] & 0xf7);
+                printf("%02x ", data[1]);
             } else {
                 printf("other sound setting 0x%02x 0x%02x 0x%02x 0x%02x\n", data[1], data[2], data[3], data[4]);
             }
             break;
-            case 0xa3:
+            case 0xc5:
             printf("keyboard LED 0x%02x 0x%02x 0x%02x 0x%02x\n", data[1], data[2], data[3], data[4]);
             break;
             default:
-            if (data[0] == 0x63 && data[1] == 0x80 && data[2] == 0xff && data[3] == 0xff && data[4] == 0x8f ) {
+            if (data[0] == 0xc6 && data[1] == 0x01 && data[2] == 0xff && data[3] == 0xff && data[4] == 0xf1 ) {
                 printf("ping?\n");
             } else {
                 printf("unknown command 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", data[0], data[1], data[2], data[3], data[4]);
