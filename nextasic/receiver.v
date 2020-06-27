@@ -31,7 +31,7 @@ module Receiver(
 						count <= count + 1'b1;
 					end
 					default: begin
-						data[39:0] <= {si, data[39:1]};
+						data[39:0] <= {data[38:0], si};
 						count <= count + 1'b1;
 					end
 				endcase
@@ -65,7 +65,7 @@ module test_Receiver;
 		
 		#CLOCK sin = 1; // first, will be dropped
 		
-		#CLOCK sin = 1;
+		#CLOCK sin = 1; // MSB
 		#CLOCK sin = 0;
 		#CLOCK sin = 1;
 		#CLOCK sin = 0;
@@ -113,7 +113,7 @@ module test_Receiver;
 		#CLOCK sin = 1; 
 		#CLOCK sin = 0;
 		#CLOCK sin = 0;
-		#CLOCK sin = 1; // last bit
+		#CLOCK sin = 1; // last bit, LSB
 		
 		
 		#CLOCK sin = 0; // normal state

@@ -19,7 +19,7 @@ module DebugDataSender(
 	reg [5:0] count = 0; // range 0 to ...
 	reg wait_for_empty = 0;
 	
-	assign sout = stored[0];
+	assign sout = stored[39];
 	
 	assign debug_test_out_1 = in_state;
 	assign debug_test_out_2 = wait_for_empty;
@@ -40,7 +40,7 @@ module DebugDataSender(
 			if (count == 40) begin
 				state <= `EMPTY;
 			end else begin
-				stored[38:0] <= stored[39:1];
+				stored[39:1] <= stored[38:0]; // TODO: fix edge
 				count <= count + 1'b1;
 			end
 		end

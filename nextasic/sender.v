@@ -13,7 +13,7 @@ module Sender(
 	reg [40:0] data;
 	reg [5:0] count = 0; // range 0 to 
 	
-	assign sout = data[0];
+	assign sout = data[40];
 	reg state1 = READY;
 	reg data_tmp_ready = 0;
 	reg data_tmp_used = 0;
@@ -32,8 +32,8 @@ module Sender(
 	always@ (negedge out_clk) begin
 		if (state1 == READY && !data_tmp_used && !data_tmp_used_ack) begin
 			if (data_tmp_ready) begin
-				data[0] <= 1;
-				data[40:1] <= data_tmp;
+				data[40] <= 1;
+				data[39:0] <= data_tmp;
 				state1 <= SEND;
 				count <= 0;
 				data_tmp_used <= 1;
@@ -45,8 +45,8 @@ module Sender(
 			if (count == 41) begin
 				state1 <= READY;
 			end else begin
-				data[40] <= 0;
-				data[39:0] <= data[40:1];
+				data[0] <= 0;
+				data[40:1] <= data[39:0];
 				count <= count + 1'b1;
 			end
 		end

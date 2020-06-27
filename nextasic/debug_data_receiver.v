@@ -30,7 +30,8 @@ module DebugDataReceiver(
 					out_valid <= 1;
 					started2 <= 0;
 				end else begin
-					data[39:0] <= {sin, data[39:1]};
+					data[0] <= sin;
+					data[39:1] <= data[38:0];
 					count <= count + 1'b1;
 				end
 				started <= started2;
@@ -120,7 +121,7 @@ module test_DebugDataReceiver;
 		#CLOCK sin = 1; // last bit
 		
 		
-		sin = 0; // normal state
+		#(CLOCK*5) sin = 0; // normal state
 		data_start = 1;
 		#CLOCK sin = 1; // first bit
 		#(CLOCK) data_start = 0;
