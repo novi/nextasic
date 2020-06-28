@@ -60,9 +60,9 @@ static volatile uint32_t dummy = 0;
 
 static void wait_clock()
 {
-    return; // disable this
+    //return; // disable this
     
-    for(uint8_t i=0;i<50;i++) {
+    for(uint8_t i=0;i<20;i++) {
         dummy++;
     }
 }
@@ -220,35 +220,32 @@ int main(int argc, char **argv)
     for(;;) {
         //printf("\nwaiting data\n");
         for(;;) {
-            SET_GPIO(GPIO_OUT_CLK_BIT, 0);
-            wait_clock();
             SET_GPIO(GPIO_OUT_CLK_BIT, 1);
+            //wait_clock();
+            SET_GPIO(GPIO_OUT_CLK_BIT, 0);
             Realtime::delay(CLOCK_WAIT);
             if (GET_GPIO(GPIO_IN_RECV_BIT)) {
                 break;
             }
         }
         //printf("recv data\n");
-        Realtime::delay(CLOCK_WAIT);
+        //wait_clock();
         for(uint8_t i=0;i<5;i++) {
             uint8_t d = 0;
             for(uint8_t j=0;j<8;j++) {
+                SET_GPIO(GPIO_OUT_CLK_BIT, 1);
+                //wait_clock();
                 if (GET_GPIO(GPIO_IN_DATA_BIT))
                     d |= 1 << (7-j); // MSB first
                 SET_GPIO(GPIO_OUT_CLK_BIT, 0);
-                wait_clock();
-                SET_GPIO(GPIO_OUT_CLK_BIT, 1);
-                Realtime::delay(CLOCK_WAIT);
+                //wait_clock();
             }
             data[i] = d;
         }
         for(uint8_t i=0;i<5;i++) {
-            SET_GPIO(GPIO_OUT_CLK_BIT, 0);
-            wait_clock();
             SET_GPIO(GPIO_OUT_CLK_BIT, 1);
-            wait_clock();
+            SET_GPIO(GPIO_OUT_CLK_BIT, 0);
         }
-        SET_GPIO(GPIO_OUT_CLK_BIT, 0);
         //printBin(data);
         switch(data[0]) {
             case 0x0f:
@@ -257,8 +254,8 @@ int main(int argc, char **argv)
             case 0x1f:
             printf("22k\n");
             break;
-            case 0xC7:
-            printf("S"); // got sound sample
+            case 0xc7:
+            //printf("S"); // got sound sample
             break;
             case 0xc4:
             if (data[1] & 0x10) {

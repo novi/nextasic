@@ -6,28 +6,31 @@ module DebugDataSender(
 	input wire in_clk,
 	input wire data_valid, // data valid
 	input wire [39:0] data,
-	output reg state = `EMPTY,
+	output reg state_out = `EMPTY,
 	output wire debug_test_out_1, // TODO: debug
 	output wire debug_test_out_2, // TODO: debug
 	input wire out_clk,
 	output wire sout
 );
 
+	reg state = `EMPTY;
 	reg [39:0] stored; // stored data
 	reg [39:0] tmp; // TODO: double FF?
 	reg in_state = `EMPTY;
 	reg [5:0] count = 0; // range 0 to ...
 	reg wait_for_empty = 0;
+	reg in_state_ack = 0;
 	
 	assign sout = stored[39];
 	
 	assign debug_test_out_1 = in_state;
 	assign debug_test_out_2 = wait_for_empty;
-	assign state_out = state;
 	
-	reg in_state_ack = 0;
-
 	always@ (posedge out_clk) begin
+		state_out <= in_state;
+	end
+
+	always@ (negedge out_clk) begin
 		if (wait_for_empty) begin
 			in_state_ack <= 0;
 		end
@@ -40,7 +43,7 @@ module DebugDataSender(
 			if (count == 40) begin
 				state <= `EMPTY;
 			end else begin
-				stored[39:1] <= stored[38:0]; // TODO: fix edge
+				stored[39:1] <= stored[38:0];
 				count <= count + 1'b1;
 			end
 		end
