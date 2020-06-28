@@ -56,7 +56,16 @@ volatile unsigned *gpio;
 
 void setup_io();
 
-static volatile int dummy = 0;
+static volatile uint32_t dummy = 0;
+
+static void wait_clock()
+{
+    return; // disable this
+    
+    for(uint8_t i=0;i<10;i++) {
+        dummy++;
+    }
+}
 
 void printBin(std::vector<uint8_t> data)
 {
@@ -88,15 +97,15 @@ void sendData(std::vector<uint8_t> data)
             // printf("%d", d & (1 << j) ? 1 : 0);
             Realtime::delay(CLOCK_WAIT);
             SET_GPIO(GPIO_OUT_CLK_BIT, 1);
-            Realtime::delay(CLOCK_WAIT);
+            wait_clock();
             SET_GPIO(GPIO_OUT_CLK_BIT, 0);
         }
     }
     SET_GPIO(GPIO_OUT_DATA_BIT, 0);
     for(uint8_t i=0; i<10;i++) {
-        Realtime::delay(CLOCK_WAIT);
+        wait_clock();
         SET_GPIO(GPIO_OUT_CLK_BIT, 1);
-        Realtime::delay(CLOCK_WAIT);
+        wait_clock();
         SET_GPIO(GPIO_OUT_CLK_BIT, 0);
     }
     //printf("sent\n");
@@ -205,12 +214,13 @@ int main(int argc, char **argv)
     
 
     std::vector<uint8_t> data = {0,0,0,0,0};
+    uint16_t  soundData, soundDataPtr, soundPtr, soundPrev, soundValidCount = 0;
 
     for(;;) {
         //printf("\nwaiting data\n");
         for(;;) {
             SET_GPIO(GPIO_OUT_CLK_BIT, 0);
-            Realtime::delay(CLOCK_WAIT);
+            wait_clock();
             SET_GPIO(GPIO_OUT_CLK_BIT, 1);
             Realtime::delay(CLOCK_WAIT);
             if (GET_GPIO(GPIO_IN_RECV_BIT)) {
@@ -225,11 +235,17 @@ int main(int argc, char **argv)
                 if (GET_GPIO(GPIO_IN_DATA_BIT))
                     d |= 1 << (7-j); // MSB first
                 SET_GPIO(GPIO_OUT_CLK_BIT, 0);
-                Realtime::delay(CLOCK_WAIT);
+                wait_clock();
                 SET_GPIO(GPIO_OUT_CLK_BIT, 1);
                 Realtime::delay(CLOCK_WAIT);
             }
             data[i] = d;
+        }
+        for(uint8_t i=0;i<5;i++) {
+            SET_GPIO(GPIO_OUT_CLK_BIT, 0);
+            wait_clock();
+            SET_GPIO(GPIO_OUT_CLK_BIT, 1);
+            wait_clock();
         }
         SET_GPIO(GPIO_OUT_CLK_BIT, 0);
         //printBin(data);
@@ -249,6 +265,33 @@ int main(int argc, char **argv)
             }
             if (data[2] == 0 && data[3] == 0 && data[4] == 0) {
                 printf("%02x ", data[1]);
+                if (data[1] == 0 && soundValidCount < 3) {
+                    soundPtr = 0;
+                    soundData = 0;
+                    soundDataPtr = 7;
+                } else if (data[1] == 1) {
+                    soundValidCount = 0;
+                    printf("\nsound setting cmd=%d,val=%d,raw=0x%02x\n", soundData >> 6, (soundData & 0x3f), soundData );
+                } else if ( (data[1] & 0xf9) == 0) {
+                    uint8_t cur = data[1] & 0x06;
+                    if (soundPtr % 2 == 1) {
+                        if (soundPrev == 0x02 && cur == 0x06) {
+                            // 1
+                            //printf("b=1\n");
+                            if (soundValidCount > 3) {
+                                soundData |= (1 << soundDataPtr);
+                            }
+                            soundValidCount++;
+                        } else {
+                            //printf("b=0\n");
+                        }
+                        if (soundValidCount > 3) {
+                            soundDataPtr--;
+                        }
+                    }
+                    soundPrev = cur;
+                    soundPtr++;
+                }
             } else {
                 printf("other sound setting 0x%02x 0x%02x 0x%02x 0x%02x\n", data[1], data[2], data[3], data[4]);
             }
@@ -260,7 +303,12 @@ int main(int argc, char **argv)
             if (data[0] == 0xc6 && data[1] == 0x01 && data[2] == 0xff && data[3] == 0xff && data[4] == 0xf1 ) {
                 printf("ping?\n");
             } else {
-                printf("unknown command 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", data[0], data[1], data[2], data[3], data[4]);
+                if (data[0] && 0xf0 == 0xc0) {
+                    printf("0xcX command 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", data[0], data[1], data[2], data[3], data[4]);
+                } else {
+                    printf("unknown command 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", data[0], data[1], data[2], data[3], data[4]);
+                }
+                
             }
             break;
         }
