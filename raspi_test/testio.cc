@@ -62,7 +62,7 @@ static void wait_clock()
 {
     return; // disable this
     
-    for(uint8_t i=0;i<10;i++) {
+    for(uint8_t i=0;i<50;i++) {
         dummy++;
     }
 }
@@ -215,6 +215,7 @@ int main(int argc, char **argv)
 
     std::vector<uint8_t> data = {0,0,0,0,0};
     uint16_t  soundData, soundDataPtr, soundPtr, soundPrev, soundValidCount = 0;
+    uint8_t soundL, soundR;
 
     for(;;) {
         //printf("\nwaiting data\n");
@@ -271,24 +272,31 @@ int main(int argc, char **argv)
                     soundDataPtr = 7;
                 } else if (data[1] == 1) {
                     soundValidCount = 0;
-                    printf("\nsound setting cmd=%d,val=%d,raw=0x%02x\n", soundData >> 6, (soundData & 0x3f), soundData );
+                    uint8_t cmd = (soundData & 0xc0) >> 6;
+                    uint8_t val = (soundData & 0x3f);
+                    printf("\nsound setting cmd=%d,val=%d,raw=0x%02x\n", cmd, val, soundData);
+                    if (cmd == 1) {
+                        soundL = val;
+                    } else if (cmd == 2) {
+                        soundR = val;
+                    } else if (cmd == 3) {
+                        soundL = soundR = val;
+                    }
+                    printf("current sound L=-%d, R=-%d dB\n", soundL, soundR);
                 } else if ( (data[1] & 0xf9) == 0) {
                     uint8_t cur = data[1] & 0x06;
                     if (soundPtr % 2 == 1) {
-                        if (soundPrev == 0x02 && cur == 0x06) {
-                            // 1
-                            //printf("b=1\n");
-                            if (soundValidCount > 3) {
+                        uint8_t sbit = (soundPrev == 0x02 && cur == 0x06);
+                        if (soundValidCount >= 3) {
+                            if (sbit) {
                                 soundData |= (1 << soundDataPtr);
                             }
-                            soundValidCount++;
-                        } else {
-                            //printf("b=0\n");
-                        }
-                        if (soundValidCount > 3) {
                             soundDataPtr--;
                         }
-                    }
+                        if (sbit) {
+                            soundValidCount++;
+                        }
+                    };
                     soundPrev = cur;
                     soundPtr++;
                 }
