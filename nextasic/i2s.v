@@ -10,21 +10,23 @@ module I2SSender(
 
 	localparam IN_SAMPLES_L = 1'b0;
 	localparam IN_SAMPLES_R = 1'b1;
-	
+
 	assign bck = i2s_clk;
-	
+
 
 	reg state = IN_SAMPLES_R;
 	reg data1_filled = 0;
-	reg data1_filled_ack = 0;
-	reg data2_valid = 0;
+	FF2SyncN data1_filled__(data1_filled, bck, data1_filled_);
+	reg data1_retrieved = 0;
+	FF2SyncP data1_retrieved__(data1_retrieved, in_clk, data1_retrieved_);
+	reg data2_valid = 0; // data2 has complete sample data not during shifting
 	reg can_serial_out = 0;
 	reg [31:0] data1;
 	reg [31:0] data2;
 	reg [5:0] counter = 0; // 0 to 63
-	
+
 	assign lrck = state;
-	
+
 	always@ (negedge bck) begin
 		if (counter == 31) begin
 			case (state)
@@ -39,8 +41,8 @@ module I2SSender(
 			counter <= counter + 1'b1;
 		end
 		
-		if (!data1_filled)
-			data1_filled_ack <= 0;
+		if (!data1_filled_)
+			data1_retrieved <= 0;
 			
 		if (can_serial_out && counter <= 15) begin
 			sout <= data2[31];
@@ -53,7 +55,7 @@ module I2SSender(
 				if (data1_filled) begin
 					data2 <= data1;
 					data2_valid <= 1;
-					data1_filled_ack <= 1;
+					data1_retrieved <= 1;
 				end
 			end
 			
@@ -61,8 +63,8 @@ module I2SSender(
 	end
 	
 	always@ (posedge in_clk) begin
-		if (data1_filled_ack) begin
-			data1_filled <= 0; // TODO: request next sound samples
+		if (data1_retrieved_) begin
+			data1_filled <= 0; // TODO: request next sound samples to NeXT hardware
 		end
 		if (in_valid && !data1_filled) begin
 			data1 <= in_data;

@@ -79,8 +79,10 @@ set_global_assignment -name VERILOG_FILE debug_data_receiver.v
 set_location_assignment PIN_17 -to debug_sin
 set_location_assignment PIN_15 -to debug_sin_start
 set_global_assignment -name VERILOG_FILE i2s.v
+set_global_assignment -name VERILOG_FILE util.v
 set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE sender.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_receiver.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE i2s.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE util.v -section_id nextasic
