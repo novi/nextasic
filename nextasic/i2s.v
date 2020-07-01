@@ -2,9 +2,9 @@ module I2SSender(
 	input wire in_clk,
 	input wire in_valid,
 	input wire [31:0] in_data,
-	input wire i2s_clk,
-	output wire lrck,
-	output wire bck, // ~2.8Mhz
+	input wire i2s_clk, // 22.5792Mhz(or 11.2896Mhz)
+	output wire lrck, // 1fs=44.1khz
+	output wire bck, // 2.8224Mhz, 64fs
 	output reg sout = 0 // i2s data, serial out
 );
 
