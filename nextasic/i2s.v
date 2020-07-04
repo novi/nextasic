@@ -77,6 +77,9 @@ module I2SSender(
 endmodule
 
 
+`timescale 1ns/1ns
+
+
 module test_I2SSender;
 
 	reg in_clk = 0;

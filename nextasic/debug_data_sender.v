@@ -1,47 +1,55 @@
-`define EMPTY 1'b0 // define state
-`define STORED 1'b1
-
-
 module DebugDataSender(
 	input wire in_clk,
-	input wire data_valid, // data valid
+	input wire in_data_valid, // data valid
 	input wire [39:0] data,
-	output reg state_out = `EMPTY,
+	output wire state_out_,
 	output wire debug_test_out_1, // TODO: debug
 	output wire debug_test_out_2, // TODO: debug
 	input wire out_clk,
 	output wire sout
 );
 
-	reg state = `EMPTY;
+	localparam EMPTY = 1'b0; // define state
+	localparam STORED = 1'b1;
+
+	reg out_state = EMPTY;
+	FF2SyncP out_state__(out_state, out_clk, out_state_);
 	reg [39:0] stored; // stored data
 	reg [39:0] tmp; // TODO: double FF?
-	reg in_state = `EMPTY;
+	reg in_state = EMPTY;
+	FF2SyncP in_state__(in_state, out_clk, in_state_);
 	reg [5:0] count = 0; // range 0 to ...
-	reg wait_for_empty = 0;
 	reg in_state_ack = 0;
+	FF2SyncP in_state_ack__(in_state_ack, in_clk, in_state_ack_);
+	
+	// reg outbuf_busy = 0;
+	// FF2SyncN outbuf_busy__(outbuf_busy, out_clk, outbuf_busy_);
 	
 	assign sout = stored[39];
 	
 	assign debug_test_out_1 = in_state;
-	assign debug_test_out_2 = wait_for_empty;
+	assign debug_test_out_2 = out_state;
 	
-	always@ (posedge out_clk) begin
-		state_out <= in_state;
-	end
+	reg state_out = 0;
+	assign state_out_ = state_out;
+	
+
 
 	always@ (negedge out_clk) begin
-		if (wait_for_empty) begin
+		if (in_state_ == EMPTY) begin
 			in_state_ack <= 0;
 		end
-		if (in_state == `STORED && state == `EMPTY) begin
+		if (in_state_ == STORED && out_state == EMPTY) begin
 			in_state_ack <= 1;
-			state <= `STORED;
+			out_state <= STORED;
 			count <= 1;
 			stored <= tmp;
-		end else begin
-			if (count == 40) begin
-				state <= `EMPTY;
+			state_out <= 1;
+		end
+		if (out_state == STORED) begin
+			state_out <= 0;
+			if (count == 45) begin
+				out_state <= EMPTY;
 			end else begin
 				stored[39:1] <= stored[38:0];
 				count <= count + 1'b1;
@@ -50,16 +58,12 @@ module DebugDataSender(
 	end
 	
 	always@ (posedge in_clk) begin
-		if (in_state_ack) begin
-			wait_for_empty <= 1;
-			in_state <= `EMPTY;
+		if (in_state_ack_) begin
+			in_state <= EMPTY;
 		end
-		if (wait_for_empty && state == `EMPTY) begin
-			wait_for_empty <= 0;
-		end
-		if (data_valid && in_state == `EMPTY && wait_for_empty == 0) begin
+		if (in_data_valid && in_state == EMPTY) begin
 			tmp <= data;
-			in_state <= `STORED;
+			in_state <= STORED;
 		end
 	end
 	
