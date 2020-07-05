@@ -11,7 +11,13 @@ module nextasic(
 	output wire debug_test_out_pin_1,
 	output wire debug_test_out_pin_2,
 	input wire debug_sin,
-	input wire debug_sin_start
+	input wire debug_sin_start,
+	
+	input wire mclk,
+	output wire mclk_out,
+	output wire bclk,
+	output wire lrck,
+	output wire audio_data
 );
 	
 	wire [39:0] in_data;
@@ -19,6 +25,7 @@ module nextasic(
 	wire debug_test_out_1;
 	wire debug_test_out_2;
 	
+	assign mclk_out = mclk;
 	assign debug_test_out_pin_1 = ~debug_test_out_1;
 	assign debug_test_out_pin_2 = ~debug_test_out_2;
 	
@@ -28,32 +35,64 @@ module nextasic(
 		in_data,
 		data_recv
 	);
-
-	DebugDataSender debug_sender(
-		mon_clk,
-		data_recv,
-		in_data,
-		debug_sig_on, // state
-		debug_test_out_1,
-		debug_test_out_2,
-		debug_clk,
-		debug_sout
+	
+	Divider8 sck_div( // generate BCLK
+		mclk,
+		bclk
 	);
-	assign from_mon = 0;
 	
+	wire is_audio;
+	OpDecoder op_decoder(
+		in_data[39:32],
+		is_audio,
+		audio_starts
+	);
 	
-	// wire [39:0] out_data;
-	// wire out_valid;
-	//
-	// assign debug_test_out_1 = out_valid;
-	//
-	// Sender sender(
-	// 	debug_clk,
-	// 	out_data,
-	// 	out_valid,
+	wire audio_req;
+	I2SSender i2s(
+		mon_clk,
+		is_audio & data_recv,
+		in_data[31:0],
+		audio_req,
+		bclk,
+		lrck,
+		audio_data
+	);
+	
+	assign debug_test_out_1 = is_audio & data_recv;
+	
+
+	// DebugDataSender debug_sender(
 	// 	mon_clk,
-	// 	from_mon
+	// 	data_recv,
+	// 	in_data,
+	// 	debug_sig_on, // state
+	// 	debug_test_out_1,
+	// 	debug_test_out_2,
+	// 	debug_clk,
+	// 	debug_sout
 	// );
+	// assign from_mon = 0;
+	
+	
+	wire [39:0] out_data;
+	wire out_valid;
+	
+	assign debug_test_out_2 = out_valid;
+	
+	OpEncoder op_enc(
+		audio_req,
+		out_data,
+		out_valid
+	);
+
+	Sender sender(
+		mon_clk,
+		out_data,
+		out_valid,
+		from_mon
+	);
+	
 	//
 	// DebugDataReceiver debug_receiver(
 	// 	debug_clk,

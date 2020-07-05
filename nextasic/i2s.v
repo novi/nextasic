@@ -2,17 +2,15 @@ module I2SSender(
 	input wire in_clk,
 	input wire in_valid,
 	input wire [31:0] in_data,
-	input wire i2s_clk, // 22.5792Mhz(or 11.2896Mhz)
-	output wire lrck, // 1fs=44.1khz
-	output wire bck, // 2.8224Mhz, 64fs
+	output reg audio_req_ = 0, // request next sound samples to NeXT hardware
+	//input wire i2s_clk, // 22.5792Mhz(or 11.2896Mhz)
+	input wire bck, // 2.8224Mhz, 64fs
+	output wire lrck, // 1fs=44.1khz	
 	output reg sout = 0 // i2s data, serial out
 );
 
 	localparam IN_SAMPLES_L = 1'b0;
 	localparam IN_SAMPLES_R = 1'b1;
-
-	assign bck = i2s_clk;
-
 
 	reg state = IN_SAMPLES_R;
 	reg data1_filled = 0;
@@ -24,6 +22,8 @@ module I2SSender(
 	reg [31:0] data1;
 	reg [31:0] data2;
 	reg [5:0] counter = 0; // 0 to 63
+	reg audio_req = 0;
+	reg can_audio_req = 0;
 
 	assign lrck = state;
 
@@ -62,13 +62,23 @@ module I2SSender(
 		end
 	end
 	
+	always@ (negedge in_clk) begin
+		audio_req_ = audio_req;
+	end
+	
 	always@ (posedge in_clk) begin
 		if (data1_retrieved_) begin
-			data1_filled <= 0; // TODO: request next sound samples to NeXT hardware
+			data1_filled <= 0;
+			if (can_audio_req) begin
+				audio_req <= 1;
+				can_audio_req <= 0;
+			end
 		end
+		if (audio_req) audio_req <= 0;
 		if (in_valid && !data1_filled) begin
 			data1 <= in_data;
 			data1_filled <= 1;
+			can_audio_req <= 1;
 		end
 	end
 
@@ -83,12 +93,13 @@ endmodule
 module test_I2SSender;
 
 	reg in_clk = 0;
-	reg out_clk = 0;
+	reg out_clk = 0; // bck
 	reg [31:0] data;
 	reg in_valid = 0;
 	wire lrck;
-	wire bck;
+	//wire bck;
 	wire sout;
+	wire audio_req;
 
 	
 	parameter OUT_CLOCK = (100*4);
@@ -98,9 +109,9 @@ module test_I2SSender;
 		in_clk,
 		in_valid,
 		data,
-		out_clk,
+		audio_req,
+		out_clk, // bck
 		lrck,
-		bck,
 		sout
 	);
 	

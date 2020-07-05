@@ -9,7 +9,7 @@ module Receiver(
 	localparam READ = 1'b1;
 
 	reg state = READY;
-	reg unsigned [5:0] count = 0; // range 0 to 40
+	reg [5:0] count = 0; // range 0 to 40
 	
 	always@ (negedge clk) begin
 		if (count == 40)
@@ -20,7 +20,7 @@ module Receiver(
 	
 	always@ (posedge clk) begin
 		case (state)
-			READY : if (si == 1) state <= READ;
+			READY : if (si == 1) state <= READ; // start bit
 			READ :
 				case (count)
 					41: begin

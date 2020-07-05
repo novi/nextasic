@@ -15,15 +15,12 @@ module DebugDataSender(
 	reg out_state = EMPTY;
 	FF2SyncP out_state__(out_state, out_clk, out_state_);
 	reg [39:0] stored; // stored data
-	reg [39:0] tmp; // TODO: double FF?
+	reg [39:0] tmp;
 	reg in_state = EMPTY;
 	FF2SyncP in_state__(in_state, out_clk, in_state_);
 	reg [5:0] count = 0; // range 0 to ...
 	reg in_state_ack = 0;
 	FF2SyncP in_state_ack__(in_state_ack, in_clk, in_state_ack_);
-	
-	// reg outbuf_busy = 0;
-	// FF2SyncN outbuf_busy__(outbuf_busy, out_clk, outbuf_busy_);
 	
 	assign sout = stored[39];
 	

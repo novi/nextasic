@@ -71,18 +71,25 @@ set_location_assignment PIN_21 -to debug_sout
 set_location_assignment PIN_12 -to dummy_clk
 set_location_assignment PIN_51 -to debug_test_out_pin_1
 set_location_assignment PIN_52 -to debug_test_out_pin_2
-set_global_assignment -name VERILOG_FILE sender.v
-set_global_assignment -name VERILOG_FILE nextasic.v
-set_global_assignment -name VERILOG_FILE receiver.v
-set_global_assignment -name VERILOG_FILE debug_data_sender.v
-set_global_assignment -name VERILOG_FILE debug_data_receiver.v
 set_location_assignment PIN_17 -to debug_sin
 set_location_assignment PIN_15 -to debug_sin_start
-set_global_assignment -name VERILOG_FILE i2s.v
-set_global_assignment -name VERILOG_FILE util.v
 set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE sender.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_receiver.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE i2s.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE util.v -section_id nextasic
+set_location_assignment PIN_49 -to lrck
+set_location_assignment PIN_47 -to audio_data
+set_location_assignment PIN_50 -to mclk
+set_location_assignment PIN_43 -to bclk
+set_location_assignment PIN_41 -to mclk_out
+set_global_assignment -name VERILOG_FILE openc.v
+set_global_assignment -name VERILOG_FILE opdec.v
+set_global_assignment -name VERILOG_FILE sender.v
+set_global_assignment -name VERILOG_FILE nextasic.v
+set_global_assignment -name VERILOG_FILE receiver.v
+set_global_assignment -name VERILOG_FILE debug_data_sender.v
+set_global_assignment -name VERILOG_FILE debug_data_receiver.v
+set_global_assignment -name VERILOG_FILE i2s.v
+set_global_assignment -name VERILOG_FILE util.v
