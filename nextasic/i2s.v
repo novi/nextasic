@@ -3,7 +3,7 @@ module I2SSender(
 	input wire in_valid,
 	input wire [31:0] in_data,
 	input wire audio_start_in,
-	output reg audio_req_out = 0, // request next sound samples to NeXT hardware
+	output wire audio_req_out_, // request next sound samples to NeXT hardware
 	//input wire i2s_clk, // 22.5792Mhz(or 11.2896Mhz)
 	input wire bck, // 2.8224Mhz, 64fs
 	output wire lrck, // 1fs=44.1khz	
@@ -12,7 +12,7 @@ module I2SSender(
 
 	localparam IN_SAMPLES_L = 1'b0;
 	localparam IN_SAMPLES_R = 1'b1;
-	localparam REQ_COUNT = 4'd14;
+	localparam REQ_DELAY = 2;
 
 	reg state = IN_SAMPLES_R;
 	reg data1_filled = 0;
@@ -32,8 +32,11 @@ module I2SSender(
 	FF2SyncN audio_start__(audio_start, bck, audio_start_);
 	reg audio_start_ack = 0; // bck domain
 	FF2SyncP audio_start_ack__(audio_start_ack, in_clk, audio_start_ack_);
-	reg [5:0] req_counter = 0;
+	reg [4:0] req_counter = 0;
+	reg audio_req_out = 0;
+	reg [REQ_DELAY:0] audio_req_out_a = 0;
 
+	assign audio_req_out_ = audio_req_out; //audio_req_out_a[REQ_DELAY];
 	assign lrck = state;
 	
 	always@ (negedge bck) begin
@@ -45,7 +48,7 @@ module I2SSender(
 			audio_start_ack <= 1;
 		end
 		
-		if (req_counter == 6'd20) begin
+		if (req_counter == 5'd21) begin // TODO: timing
 			req_counter <= 0;
 			audio_req <= 1;
 		end else begin
@@ -99,9 +102,10 @@ module I2SSender(
 		if (!audio_req_ack && audio_req_) begin
 			audio_req_out <= 1;
 			audio_req_ack <= 1;
-		end
-		if (audio_req_out)
+		end else if (audio_req_out)
 			audio_req_out <= 0;
+			
+		audio_req_out_a[REQ_DELAY:0] <= {audio_req_out_a[(REQ_DELAY-1):0], audio_req_out}; 
 			
 		if (!audio_req_)
 			audio_req_ack <= 0;
@@ -116,9 +120,8 @@ module I2SSender(
 			audio_start <= 0;
 		
 		// audio data
-		if (data1_retrieved_) begin
+		if (data1_retrieved_)
 			data1_filled <= 0;
-		end
 						
 		if (in_valid && !data1_filled) begin
 			data1 <= in_data;

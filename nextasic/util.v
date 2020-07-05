@@ -46,7 +46,7 @@ module Delay #(
 	always@ (negedge clk) begin
 		if (counter == DELAY)
 			out_data <= 1;
-		if (out_data) out_data <= 0;
+		else if (out_data) out_data <= 0;
 	end
 	
 	always@ (posedge clk) begin
@@ -56,8 +56,9 @@ module Delay #(
 			if (running) begin
 				if (counter == (DELAY+1)) begin
 					running <= 0;
+				end else begin
+					counter <= counter + 1'b1;
 				end
-				counter <= counter + 1'b1;
 			end else begin
 				if (in_data && !running) begin
 					counter <= 0;
@@ -104,9 +105,11 @@ module Divider8(
 	assign out = counter[2];
 	
 	always @(posedge clk) begin
-		counter <= counter + 1'b1;
 		if(counter >= (DIVISOR-1))
 			counter <= 0;
+		else begin
+			counter <= counter + 1'b1;
+		end
 	end
 endmodule
 
