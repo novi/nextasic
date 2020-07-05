@@ -41,7 +41,7 @@ module nextasic(
 		bclk
 	);
 	
-	wire is_audio;
+	wire is_audio, audio_starts;
 	OpDecoder op_decoder(
 		in_data[39:32],
 		is_audio,
@@ -53,6 +53,7 @@ module nextasic(
 		mon_clk,
 		is_audio & data_recv,
 		in_data[31:0],
+		audio_starts,
 		audio_req,
 		bclk,
 		lrck,
@@ -76,9 +77,15 @@ module nextasic(
 	
 	
 	wire [39:0] out_data;
-	wire out_valid;
+	wire out_valid, audio_req_delay;
 	
-	assign debug_test_out_2 = out_valid;
+	assign debug_test_out_2 = audio_req;
+	
+	Delay #(.DELAY(143)) delay_audio(
+		mon_clk,
+		audio_req,
+		audio_req_delay
+	);
 	
 	OpEncoder op_enc(
 		audio_req,

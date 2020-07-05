@@ -2,7 +2,8 @@ module I2SSender(
 	input wire in_clk,
 	input wire in_valid,
 	input wire [31:0] in_data,
-	output reg audio_req_ = 0, // request next sound samples to NeXT hardware
+	input wire audio_start_in,
+	output reg audio_req_out = 0, // request next sound samples to NeXT hardware
 	//input wire i2s_clk, // 22.5792Mhz(or 11.2896Mhz)
 	input wire bck, // 2.8224Mhz, 64fs
 	output wire lrck, // 1fs=44.1khz	
@@ -11,6 +12,7 @@ module I2SSender(
 
 	localparam IN_SAMPLES_L = 1'b0;
 	localparam IN_SAMPLES_R = 1'b1;
+	localparam REQ_COUNT = 3'd6;
 
 	reg state = IN_SAMPLES_R;
 	reg data1_filled = 0;
@@ -22,17 +24,39 @@ module I2SSender(
 	reg [31:0] data1;
 	reg [31:0] data2;
 	reg [5:0] counter = 0; // 0 to 63
-	reg audio_req = 0;
-	reg can_audio_req = 0;
+	reg audio_req = 0; // bck domain
+	FF2SyncN audio_req__(audio_req, in_clk, audio_req_);
+	reg audio_req_ack = 0; // in_clk domain
+	FF2SyncN audio_req_ack__(audio_req_ack, bck, audio_req_ack_);
+	reg audio_start = 0; // in_clk domain
+	FF2SyncN audio_start__(audio_start, bck, audio_start_);
+	reg audio_start_ack = 0; // bck domain
+	FF2SyncP audio_start_ack__(audio_start_ack, in_clk, audio_start_ack_);
+	reg [2:0] req_counter = REQ_COUNT;
 
 	assign lrck = state;
-
+	
 	always@ (negedge bck) begin
+		// request
+		if (audio_req_ack_)
+			audio_req <= 0;
+		
+		if (audio_start_ && !audio_start_ack) begin
+			req_counter <= 0;
+			audio_start_ack <= 1;
+			audio_req <= 1;
+		end
+	
+		// audio data
 		if (counter == 31) begin
 			case (state)
 				IN_SAMPLES_R: begin
 					state <= IN_SAMPLES_L;
 					can_serial_out <= data2_valid;
+					audio_start_ack <= 0;
+					audio_req <= 0;
+					if (req_counter < REQ_COUNT)
+						req_counter <= req_counter + 1'b1;
 				end
 				IN_SAMPLES_L: state <= IN_SAMPLES_R;
 			endcase
@@ -48,7 +72,7 @@ module I2SSender(
 			sout <= data2[31];
 			data2[31:1] <= data2[30:0];
 			data2[0] <= 0;
-			data2_valid <= 0;
+			data2_valid <= 0; // data2 is partial data, shifing...
 		end else begin
 			sout <= 0;
 			if (state == IN_SAMPLES_R && !data2_valid) begin
@@ -56,29 +80,42 @@ module I2SSender(
 					data2 <= data1;
 					data2_valid <= 1;
 					data1_retrieved <= 1;
+					req_counter <= 0;
 				end
+			    if (req_counter < REQ_COUNT)
+			   		audio_req <= 1;
 			end
 			
 		end
 	end
 	
 	always@ (negedge in_clk) begin
-		audio_req_ = audio_req;
+		if (!audio_req_ack && audio_req_) begin
+			audio_req_out <= 1;
+			audio_req_ack <= 1;
+		end
+		if (audio_req_out)
+			audio_req_out <= 0;
+		if (!audio_req_)
+			audio_req_ack <= 0;
+	end
+	
+	always@ (posedge in_clk) begin
+		if (audio_start_in)
+			audio_start <= 1;
+			
+		if (audio_start_ack_)
+			audio_start <= 0;
 	end
 	
 	always@ (posedge in_clk) begin
 		if (data1_retrieved_) begin
 			data1_filled <= 0;
-			if (can_audio_req) begin
-				audio_req <= 1;
-				can_audio_req <= 0;
-			end
 		end
-		if (audio_req) audio_req <= 0;
+						
 		if (in_valid && !data1_filled) begin
 			data1 <= in_data;
 			data1_filled <= 1;
-			can_audio_req <= 1;
 		end
 	end
 
@@ -96,8 +133,8 @@ module test_I2SSender;
 	reg out_clk = 0; // bck
 	reg [31:0] data;
 	reg in_valid = 0;
+	reg audio_start = 0;
 	wire lrck;
-	//wire bck;
 	wire sout;
 	wire audio_req;
 
@@ -109,6 +146,7 @@ module test_I2SSender;
 		in_clk,
 		in_valid,
 		data,
+		audio_start,
 		audio_req,
 		out_clk, // bck
 		lrck,
@@ -121,21 +159,25 @@ module test_I2SSender;
 	initial begin
 		in_valid = 0;
 		data = 32'b11011001100110011001100110010001;
-		#(OUT_CLOCK*35);
+		#(OUT_CLOCK*35*4);
 		
-		#(IN_CLOCK);
+		@(negedge in_clk);
+		audio_start = 1;
+		@(negedge in_clk);
+		audio_start = 0;
+		#(OUT_CLOCK*6);
+		@(negedge in_clk);
 		in_valid = 1;
-		#(IN_CLOCK);
+		@(negedge in_clk);
 		in_valid = 0;
 		#(OUT_CLOCK*32+5)
 		data = 32'b10011001100110011001100110010011;
-		#(IN_CLOCK);
+		@(negedge in_clk);
 		in_valid = 1;
-		#(IN_CLOCK);
+		@(negedge in_clk);
 		in_valid = 0;
 		
-		#(OUT_CLOCK*64*3);
-		#(OUT_CLOCK*20);
+		#(OUT_CLOCK*64*10);
 		
 		$stop;
 	end
