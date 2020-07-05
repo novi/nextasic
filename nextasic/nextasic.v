@@ -81,11 +81,12 @@ module nextasic(
 	
 	assign debug_test_out_2 = audio_req;
 	
-	Delay #(.DELAY(143)) delay_audio(
-		mon_clk,
-		audio_req,
-		audio_req_delay
-	);
+	// Delay #(.DELAY(35)) delay_audio(
+	// 	mon_clk,
+	// 	audio_req,
+	// 	data_recv,
+	// 	audio_req_delay
+	// );
 	
 	OpEncoder op_enc(
 		audio_req,

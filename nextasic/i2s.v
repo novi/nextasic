@@ -12,7 +12,7 @@ module I2SSender(
 
 	localparam IN_SAMPLES_L = 1'b0;
 	localparam IN_SAMPLES_R = 1'b1;
-	localparam REQ_COUNT = 3'd6;
+	localparam REQ_COUNT = 4'd14;
 
 	reg state = IN_SAMPLES_R;
 	reg data1_filled = 0;
@@ -32,7 +32,7 @@ module I2SSender(
 	FF2SyncN audio_start__(audio_start, bck, audio_start_);
 	reg audio_start_ack = 0; // bck domain
 	FF2SyncP audio_start_ack__(audio_start_ack, in_clk, audio_start_ack_);
-	reg [2:0] req_counter = REQ_COUNT;
+	reg [5:0] req_counter = 0;
 
 	assign lrck = state;
 	
@@ -40,11 +40,16 @@ module I2SSender(
 		// request
 		if (audio_req_ack_)
 			audio_req <= 0;
-		
+
 		if (audio_start_ && !audio_start_ack) begin
-			req_counter <= 0;
 			audio_start_ack <= 1;
+		end
+		
+		if (req_counter == 6'd20) begin
+			req_counter <= 0;
 			audio_req <= 1;
+		end else begin
+			req_counter <= req_counter + 1'b1;
 		end
 	
 		// audio data
@@ -55,10 +60,12 @@ module I2SSender(
 					can_serial_out <= data2_valid;
 					audio_start_ack <= 0;
 					audio_req <= 0;
-					if (req_counter < REQ_COUNT)
-						req_counter <= req_counter + 1'b1;
+					
 				end
-				IN_SAMPLES_L: state <= IN_SAMPLES_R;
+				IN_SAMPLES_L: begin
+					state <= IN_SAMPLES_R;
+					req_counter <= 0;
+				end
 			endcase
 			counter <= 0;
 		end else begin
@@ -67,7 +74,10 @@ module I2SSender(
 		
 		if (!data1_filled_)
 			data1_retrieved <= 0;
-			
+		
+		if (state == IN_SAMPLES_L)
+			req_counter <= 0;
+		
 		if (can_serial_out && counter <= 15) begin
 			sout <= data2[31];
 			data2[31:1] <= data2[30:0];
@@ -80,12 +90,8 @@ module I2SSender(
 					data2 <= data1;
 					data2_valid <= 1;
 					data1_retrieved <= 1;
-					req_counter <= 0;
 				end
-			    if (req_counter < REQ_COUNT)
-			   		audio_req <= 1;
 			end
-			
 		end
 	end
 	
@@ -96,19 +102,20 @@ module I2SSender(
 		end
 		if (audio_req_out)
 			audio_req_out <= 0;
+			
 		if (!audio_req_)
 			audio_req_ack <= 0;
 	end
 	
 	always@ (posedge in_clk) begin
+		// request
 		if (audio_start_in)
 			audio_start <= 1;
-			
+
 		if (audio_start_ack_)
 			audio_start <= 0;
-	end
-	
-	always@ (posedge in_clk) begin
+		
+		// audio data
 		if (data1_retrieved_) begin
 			data1_filled <= 0;
 		end
