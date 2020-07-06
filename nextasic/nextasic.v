@@ -46,6 +46,7 @@ module nextasic(
 	wire is_audio, audio_starts, all_1_packet, power_on_packet_R1;
 	OpDecoder op_decoder(
 		in_data[39:24],
+		data_recv,
 		is_audio,
 		audio_starts,
 		all_1_packet,
@@ -55,7 +56,7 @@ module nextasic(
 	wire audio_req;
 	I2SSender i2s(
 		mon_clk,
-		is_audio & data_recv,
+		is_audio,
 		in_data[31:0],
 		audio_starts,
 		audio_req,
@@ -64,7 +65,7 @@ module nextasic(
 		audio_data
 	);
 	
-	assign debug_test_out_1 = is_audio & data_recv;
+	assign debug_test_out_1 = is_audio;
 	
 
 	// DebugDataSender debug_sender(
