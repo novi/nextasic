@@ -38,7 +38,7 @@ module nextasic(
 		data_recv
 	);
 	
-	Divider8 sck_div( // generate BCLK
+	Divider#(.DIVISOR(8), .W(3)) sck_div( // generate BCLK
 		mclk,
 		bclk
 	);

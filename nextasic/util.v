@@ -42,7 +42,7 @@ module Delay #(
 	input wire reset,
 	output reg out_data = 0
 );
-	reg [W:0] counter;
+	reg [W-1:0] counter;
 	reg running = 0;
 	
 	always@ (negedge clk) begin
@@ -98,12 +98,14 @@ module test_Delay;
 	
 endmodule
 
-module Divider8(
+module Divider#(
+	parameter DIVISOR = 4'd8,
+	parameter W = 3
+	) (
 	input wire clk,
 	output wire out
 );
-	localparam DIVISOR = 4'd8;
-	reg[2:0] counter = 0;
+	reg[W-1:0] counter = 0;
 	
 	assign out = counter[2];
 	
@@ -116,14 +118,14 @@ module Divider8(
 	end
 endmodule
 
-module test_Divider8;
+module test_Divider;
 
 	reg clk = 0;
 	wire out;
 	
 	parameter CLOCK = 100;
 
-	Divider8 div8(
+	Divider div(
 		clk,
 		out
 	);
