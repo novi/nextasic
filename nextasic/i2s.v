@@ -1,3 +1,5 @@
+`default_nettype none
+
 module I2SSender(
 	input wire in_clk,
 	input wire in_valid,
@@ -12,12 +14,15 @@ module I2SSender(
 
 	localparam IN_SAMPLES_L = 1'b0;
 	localparam IN_SAMPLES_R = 1'b1;
-	localparam REQ_DELAY = 2;
+	localparam REQ_OUT_DELAY = 4;
+	localparam REQ_COUNT = 3'd7;
 
 	reg state = IN_SAMPLES_R;
 	reg data1_filled = 0;
+	wire data1_filled_;
 	FF2SyncN data1_filled__(data1_filled, bck, data1_filled_);
 	reg data1_retrieved = 0;
+	wire data1_retrieved_;
 	FF2SyncP data1_retrieved__(data1_retrieved, in_clk, data1_retrieved_);
 	reg data2_valid = 0; // data2 has complete sample data not during shifting
 	reg can_serial_out = 0;
@@ -25,16 +30,22 @@ module I2SSender(
 	reg [31:0] data2;
 	reg [5:0] counter = 0; // 0 to 63
 	reg audio_req = 0; // bck domain
+	wire audio_req_;
 	FF2SyncN audio_req__(audio_req, in_clk, audio_req_);
 	reg audio_req_ack = 0; // in_clk domain
+	wire audio_req_ack_;
 	FF2SyncN audio_req_ack__(audio_req_ack, bck, audio_req_ack_);
 	reg audio_start = 0; // in_clk domain
+	wire audio_start_;
 	FF2SyncN audio_start__(audio_start, bck, audio_start_);
 	reg audio_start_ack = 0; // bck domain
+	wire audio_start_ack_;
 	FF2SyncP audio_start_ack__(audio_start_ack, in_clk, audio_start_ack_);
-	reg [4:0] req_counter = 0;
+	reg [4:0] req_delay = 0;
+	reg [2:0] req_counter = REQ_COUNT;
+	
 	reg audio_req_out = 0;
-	reg [REQ_DELAY:0] audio_req_out_a = 0;
+	reg [REQ_OUT_DELAY:0] audio_req_out_a = 0;
 
 	assign audio_req_out_ = audio_req_out; //audio_req_out_a[REQ_DELAY];
 	assign lrck = state;
@@ -46,28 +57,33 @@ module I2SSender(
 
 		if (audio_start_ && !audio_start_ack) begin
 			audio_start_ack <= 1;
+			req_counter <= 0;
 		end
 		
-		if (req_counter == 5'd21) begin // TODO: timing
-			req_counter <= 0;
-			audio_req <= 1;
-		end else begin
-			req_counter <= req_counter + 1'b1;
+		if (!audio_start)
+			audio_start_ack <= 0;
+		
+		if (req_counter < REQ_COUNT) begin
+			if (req_delay == 5'd21) begin // TODO: timing
+				req_delay <= 0;
+				audio_req <= 1;
+				req_counter <= req_counter + 1'b1;
+			end else begin
+				req_delay <= req_delay + 1'b1;
+			end
 		end
-	
+		
 		// audio data
 		if (counter == 31) begin
 			case (state)
 				IN_SAMPLES_R: begin
 					state <= IN_SAMPLES_L;
 					can_serial_out <= data2_valid;
-					audio_start_ack <= 0;
 					audio_req <= 0;
-					
 				end
 				IN_SAMPLES_L: begin
 					state <= IN_SAMPLES_R;
-					req_counter <= 0;
+					req_delay <= 0;
 				end
 			endcase
 			counter <= 0;
@@ -79,7 +95,7 @@ module I2SSender(
 			data1_retrieved <= 0;
 		
 		if (state == IN_SAMPLES_L)
-			req_counter <= 0;
+			req_delay <= 0;
 		
 		if (can_serial_out && counter <= 15) begin
 			sout <= data2[31];
@@ -93,6 +109,8 @@ module I2SSender(
 					data2 <= data1;
 					data2_valid <= 1;
 					data1_retrieved <= 1;
+					//
+					req_counter <= 0;
 				end
 			end
 		end
@@ -105,7 +123,7 @@ module I2SSender(
 		end else if (audio_req_out)
 			audio_req_out <= 0;
 			
-		audio_req_out_a[REQ_DELAY:0] <= {audio_req_out_a[(REQ_DELAY-1):0], audio_req_out}; 
+		audio_req_out_a[REQ_OUT_DELAY:0] <= {audio_req_out_a[(REQ_OUT_DELAY-1):0], audio_req_out}; 
 			
 		if (!audio_req_)
 			audio_req_ack <= 0;
@@ -169,6 +187,7 @@ module test_I2SSender;
 	initial begin
 		in_valid = 0;
 		data = 32'b11011001100110011001100110010001;
+		
 		#(OUT_CLOCK*35*4);
 		
 		@(negedge in_clk);
@@ -176,16 +195,13 @@ module test_I2SSender;
 		@(negedge in_clk);
 		audio_start = 0;
 		#(OUT_CLOCK*6);
-		@(negedge in_clk);
-		in_valid = 1;
-		@(negedge in_clk);
-		in_valid = 0;
+		
+		@(negedge in_clk) in_valid = 1;
+		@(negedge in_clk) in_valid = 0;
 		#(OUT_CLOCK*32+5)
 		data = 32'b10011001100110011001100110010011;
-		@(negedge in_clk);
-		in_valid = 1;
-		@(negedge in_clk);
-		in_valid = 0;
+		@(negedge in_clk) in_valid = 1;
+		@(negedge in_clk) in_valid = 0;
 		
 		#(OUT_CLOCK*64*10);
 		

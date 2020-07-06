@@ -1,3 +1,5 @@
+`default_nettype none
+
 module Receiver(
 	input wire clk,
 	input wire si, // serial in

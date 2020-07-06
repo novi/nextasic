@@ -1,3 +1,5 @@
+`default_nettype none
+
 module nextasic(
 	input wire mon_clk,
 	input wire to_mon,
@@ -41,11 +43,13 @@ module nextasic(
 		bclk
 	);
 	
-	wire is_audio, audio_starts;
+	wire is_audio, audio_starts, all_1_packet, power_on_packet_R1;
 	OpDecoder op_decoder(
-		in_data[39:32],
+		in_data[39:24],
 		is_audio,
-		audio_starts
+		audio_starts,
+		all_1_packet,
+		power_on_packet_R1
 	);
 	
 	wire audio_req;
@@ -90,6 +94,7 @@ module nextasic(
 	
 	OpEncoder op_enc(
 		audio_req,
+		0,
 		out_data,
 		out_valid
 	);

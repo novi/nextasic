@@ -13,13 +13,16 @@ module DebugDataSender(
 	localparam STORED = 1'b1;
 
 	reg out_state = EMPTY;
+	wire out_state_;
 	FF2SyncP out_state__(out_state, out_clk, out_state_);
 	reg [39:0] stored; // stored data
 	reg [39:0] tmp;
 	reg in_state = EMPTY;
+	wire in_state_;
 	FF2SyncP in_state__(in_state, out_clk, in_state_);
 	reg [5:0] count = 0; // range 0 to ...
 	reg in_state_ack = 0;
+	wire in_state_ack_;
 	FF2SyncP in_state_ack__(in_state_ack, in_clk, in_state_ack_);
 	
 	assign sout = stored[39];
