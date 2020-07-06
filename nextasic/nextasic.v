@@ -10,27 +10,27 @@ module nextasic(
 	input wire debug_clk,
 	output wire debug_sout,
 	output wire debug_sig_on, // state
-	output wire debug_test_out_pin_1,
-	output wire debug_test_out_pin_2,
 	input wire debug_sin,
 	input wire debug_sin_start,
+	
+
+	output [9:0] debug_test_pins_out,
 	
 	input wire mclk,
 	output wire mclk_out,
 	output wire bclk,
 	output wire lrck,
 	output wire audio_data
-);
+);	
+	wire [9:0] debug_test_pins;
+	
+	assign mclk_out = mclk;
+	assign debug_test_pins_out = ~debug_test_pins;
+	assign debug_test_pins[4:3] = 2'b00;
+	assign debug_test_pins[9:7] = 3'b000;
 	
 	wire [39:0] in_data;
 	wire data_recv;
-	wire debug_test_out_1;
-	wire debug_test_out_2;
-	
-	assign mclk_out = mclk;
-	assign debug_test_out_pin_1 = ~debug_test_out_1;
-	assign debug_test_out_pin_2 = ~debug_test_out_2;
-	
 	Receiver receiver(
 		mon_clk,
 		to_mon,
@@ -65,8 +65,9 @@ module nextasic(
 		audio_data
 	);
 	
-	assign debug_test_out_1 = is_audio;
-	
+	assign debug_test_pins[0] = data_recv;
+	assign debug_test_pins[2] = is_audio;
+	assign debug_test_pins[1] = all_1_packet;
 
 	// DebugDataSender debug_sender(
 	// 	mon_clk,
@@ -84,7 +85,8 @@ module nextasic(
 	wire [39:0] out_data;
 	wire out_valid, power_on_packet_S1;
 	
-	assign debug_test_out_2 = audio_req;
+	assign debug_test_pins[5] = audio_req;
+	assign debug_test_pins[6] = out_valid;
 	
 	// wire mon_clk_8;
 	// Divider8 mon_clk_div(
@@ -92,7 +94,7 @@ module nextasic(
 	// 	mon_clk_8
 	// );
 	
-	Delay #(.DELAY(14000), .W(14)) power_on_packet_delay(
+	Delay #(.DELAY(14000), .W(14)) power_on_packet_delay( // 2.8ms delay
 		mon_clk,
 		power_on_packet_R1,
 		0,
