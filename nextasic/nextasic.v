@@ -82,20 +82,20 @@ module nextasic(
 	
 	
 	wire [39:0] out_data;
-	wire out_valid, audio_req_delay;
+	wire out_valid, power_on_packet_S1;
 	
 	assign debug_test_out_2 = audio_req;
 	
-	// Delay #(.DELAY(35)) delay_audio(
-	// 	mon_clk,
-	// 	audio_req,
-	// 	data_recv,
-	// 	audio_req_delay
-	// );
+	Delay #(.DELAY(14)) power_on_packet_delay(
+		mon_clk,
+		power_on_packet_R1,
+		0,
+		power_on_packet_S1
+	);
 	
 	OpEncoder op_enc(
 		audio_req,
-		0,
+		power_on_packet_S1,
 		out_data,
 		out_valid
 	);

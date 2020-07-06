@@ -34,14 +34,14 @@ module FF2SyncN(
 endmodule
 
 module Delay #(
-	parameter DELAY = 10 // max 254
+	parameter DELAY = 10 // max 30
 	) (
 	input wire clk,
 	input wire in_data,
 	input wire reset,
 	output reg out_data = 0
 );
-	reg [7:0] counter;
+	reg [4:0] counter;
 	reg running = 0;
 	
 	always@ (negedge clk) begin
@@ -75,11 +75,12 @@ module test_Delay;
 	reg in_data = 0;
 	wire out;
 	
-	parameter CLOCK = 100;
+	parameter CLOCK = 200;
 
 	Delay delay(
 		clk,
 		in_data,
+		0,
 		out
 	);
 	
