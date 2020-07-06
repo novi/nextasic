@@ -86,7 +86,13 @@ module nextasic(
 	
 	assign debug_test_out_2 = audio_req;
 	
-	Delay #(.DELAY(14)) power_on_packet_delay(
+	// wire mon_clk_8;
+	// Divider8 mon_clk_div(
+	// 	mon_clk,
+	// 	mon_clk_8
+	// );
+	
+	Delay #(.DELAY(14000), .W(14)) power_on_packet_delay(
 		mon_clk,
 		power_on_packet_R1,
 		0,
