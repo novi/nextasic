@@ -1,3 +1,5 @@
+`default_nettype none
+
 module Sender(
 	input wire clk,
 	input wire [39:0] in_data,
@@ -14,10 +16,6 @@ module Sender(
 	assign sout = data[40];
 	
 	reg state = READY;
-
-	always@ (posedge clk) begin
-		
-	end
 
 	always@ (negedge clk) begin
 		case (state)
