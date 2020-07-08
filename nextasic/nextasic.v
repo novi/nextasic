@@ -5,6 +5,9 @@ module nextasic(
 	input wire to_mon,
 	output wire from_mon,
 	
+	input wire from_kb,
+	output wire to_kb,
+	
 	input wire dummy_clk,
 	
 	input wire debug_clk,
@@ -43,14 +46,15 @@ module nextasic(
 		bclk
 	);
 	
-	wire is_audio_sample, audio_starts, all_1_packet, power_on_packet_R1;
+	wire is_audio_sample, audio_starts, all_1_packet, power_on_packet_R1, keyboard_led_update;
 	OpDecoder op_decoder(
 		in_data[39:24],
 		data_recv,
 		is_audio_sample,
 		audio_starts,
 		all_1_packet,
-		power_on_packet_R1
+		power_on_packet_R1,
+		keyboard_led_update
 	);
 	
 	wire audio_req;
@@ -63,6 +67,18 @@ module nextasic(
 		bclk,
 		lrck,
 		audio_data
+	);
+	
+	wire [15:0] keyboard_data;
+	wire keyboard_data_ready, is_mouse_data, keyboard_data_retrieved, from_kb, to_kb;
+	Keyboard keyboard(
+		mon_clk,
+		keyboard_data_ready,
+		is_mouse_data,
+		keyboard_data,
+		keyboard_data_retrieved,
+		from_kb,
+		to_kb
 	);
 	
 	assign debug_test_pins[0] = data_recv;
@@ -104,8 +120,12 @@ module nextasic(
 	OpEncoder op_enc(
 		audio_req,
 		power_on_packet_S1,
+		keyboard_data_ready,
+		is_mouse_data,
+		keyboard_data,
 		out_data,
-		out_valid
+		out_valid,
+		keyboard_data_retrieved
 	);
 
 	Sender sender(

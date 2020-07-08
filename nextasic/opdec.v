@@ -6,7 +6,8 @@ module OpDecoder(
 	output reg is_audio_sample,
 	output reg audio_starts,
 	output reg all_1_packet, // can be used for entire reset
-	output reg power_on_packet_R1
+	output reg power_on_packet_R1,
+	output reg keyboard_led_update
 );
 
 	always@ (*) begin
@@ -14,6 +15,7 @@ module OpDecoder(
 		audio_starts = 0;
 		all_1_packet = 0;
 		power_on_packet_R1 = 0;
+		keyboard_led_update = 0;
 		if (op_valid)
 			casex (op)
 				16'h1f??: begin // 22khz
@@ -24,6 +26,9 @@ module OpDecoder(
 				end
 				16'hc7??: begin
 					is_audio_sample = 1;
+				end
+				16'hc5??: begin
+					keyboard_led_update = 1;
 				end
 				16'hff??: begin
 					all_1_packet = 1;
