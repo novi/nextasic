@@ -70,7 +70,7 @@ module nextasic(
 	);
 	
 	wire [15:0] keyboard_data;
-	wire keyboard_data_ready, is_mouse_data, keyboard_data_retrieved, from_kb, to_kb;
+	wire keyboard_data_ready, is_mouse_data, keyboard_data_retrieved;
 	Keyboard keyboard(
 		mon_clk,
 		keyboard_data_ready,

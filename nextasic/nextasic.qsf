@@ -71,26 +71,11 @@ set_location_assignment PIN_21 -to debug_sout
 set_location_assignment PIN_12 -to dummy_clk
 set_location_assignment PIN_17 -to debug_sin
 set_location_assignment PIN_15 -to debug_sin_start
-set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
-set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
-set_global_assignment -name EDA_TEST_BENCH_FILE sender.v -section_id nextasic
-set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_receiver.v -section_id nextasic
-set_global_assignment -name EDA_TEST_BENCH_FILE i2s.v -section_id nextasic
-set_global_assignment -name EDA_TEST_BENCH_FILE util.v -section_id nextasic
 set_location_assignment PIN_49 -to lrck
 set_location_assignment PIN_47 -to audio_data
 set_location_assignment PIN_50 -to mclk
 set_location_assignment PIN_43 -to bclk
 set_location_assignment PIN_41 -to mclk_out
-set_global_assignment -name VERILOG_FILE openc.v
-set_global_assignment -name VERILOG_FILE opdec.v
-set_global_assignment -name VERILOG_FILE sender.v
-set_global_assignment -name VERILOG_FILE nextasic.v
-set_global_assignment -name VERILOG_FILE receiver.v
-set_global_assignment -name VERILOG_FILE debug_data_sender.v
-set_global_assignment -name VERILOG_FILE debug_data_receiver.v
-set_global_assignment -name VERILOG_FILE i2s.v
-set_global_assignment -name VERILOG_FILE util.v
 set_location_assignment PIN_51 -to debug_test_pins_out[0]
 set_location_assignment PIN_53 -to debug_test_pins_out[1]
 set_location_assignment PIN_55 -to debug_test_pins_out[2]
@@ -101,3 +86,20 @@ set_location_assignment PIN_69 -to debug_test_pins_out[6]
 set_location_assignment PIN_71 -to debug_test_pins_out[7]
 set_location_assignment PIN_73 -to debug_test_pins_out[8]
 set_location_assignment PIN_75 -to debug_test_pins_out[9]
+set_global_assignment -name VERILOG_FILE keyboard.v
+set_global_assignment -name VERILOG_FILE openc.v
+set_global_assignment -name VERILOG_FILE opdec.v
+set_global_assignment -name VERILOG_FILE sender.v
+set_global_assignment -name VERILOG_FILE nextasic.v
+set_global_assignment -name VERILOG_FILE receiver.v
+set_global_assignment -name VERILOG_FILE debug_data_sender.v
+set_global_assignment -name VERILOG_FILE debug_data_receiver.v
+set_global_assignment -name VERILOG_FILE i2s.v
+set_global_assignment -name VERILOG_FILE util.v
+set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE sender.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_receiver.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE i2s.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE util.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE keyboard.v -section_id nextasic
