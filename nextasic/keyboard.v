@@ -23,14 +23,13 @@ module Keyboard(
 	reg [1:0] ready_state = READY_NOT;
 	reg [5:0] send_count = 0;
 	reg is_send_query = 0; // if is_send_query, the packet size is 8bit, otherwise 21bit
-	reg [20:0] tmp_send; // 21 bit
+	reg [20:0] tmp; // 21 bit
 	reg is_sending = 0;
 	reg query_state = QUERY_KEYBOARD;
 	reg data_receved = 0;
 	reg [4:0] key_clk_count = 0;
 	
 	reg is_recving = 0;
-	//reg [19:0] tmp_recv; // 19bit
 	reg [5:0] recv_count;
 	reg [4:0] recv_delay;
 	
@@ -42,14 +41,16 @@ module Keyboard(
 			send_count <= send_count + 1'b1;
 			if (send_count == 6'd40) begin
 				if (ready_state == READY_NOT) begin
-					tmp_send <= 21'b111101111110000000000;
+					tmp <= 21'b111101111110000000000;
 					is_send_query <= 0;
 					ready_state <= READY_PENDING;
 				end else begin
 					if (query_state == QUERY_KEYBOARD)
-						tmp_send <= 21'b00001000xxxxxxxxxxxxx;
+						tmp <= 21'b00001000xxxxxxxxxxxxx;
 					else
-						tmp_send <= 21'b10001000xxxxxxxxxxxxx;
+ 						tmp <= 21'b10001000xxxxxxxxxxxxx;
+					if (!data_ready)
+						is_mouse_data <= query_state == QUERY_KEYBOARD ? 0 : 1;
 					query_state <= ~query_state;
 					is_send_query <= 1;
 				end
@@ -68,8 +69,8 @@ module Keyboard(
 				to_kb <= 1;
 				is_sending <= 0;
 			end else if (is_sending && !is_recving) begin
-				to_kb <= tmp_send[20];
-				tmp_send[20:1] <= tmp_send[19:0];
+				to_kb <= tmp[20];
+				tmp[20:1] <= tmp[19:0];
 			end
 		end else begin
 			key_clk_count = key_clk_count + 1'b1;
@@ -86,17 +87,16 @@ module Keyboard(
 			if (recv_count == 5'd21) begin
 				// recv done
 				is_recving <= 0;
-				casex (tmp_send)
+				casex (tmp)
 					21'b11100000000110000000?: begin // ready response
 						ready_state <= READY_READY;
 						data_receved <= 1;
 					end
 					21'b10????????01?????????: begin
-						keyboard_data[7:0] <= tmp_send[8:1];
-						keyboard_data[15:8] <= tmp_send[18:11];
+						keyboard_data[7:0] <= tmp[8:1];
+						keyboard_data[15:8] <= tmp[18:11];
 						data_receved <= 1;
 						data_ready <= 1;
-						is_mouse_data <= query_state;
 					end
 				endcase
 			end else if (recv_count == 0 && recv_delay == 5'd12) begin 
@@ -105,7 +105,7 @@ module Keyboard(
 				recv_count <= 5'd1; // recv_count <= recv_count + 1'b1;
 			end else if (recv_delay == KEY_CLK) begin
 				recv_delay <= 0;
-				tmp_send[20:0] <= {from_kb, tmp_send[20:1]};
+				tmp[20:0] <= {from_kb, tmp[20:1]};
 				recv_count <= recv_count + 1'b1;
 			end else
 				recv_delay <= recv_delay + 1'b1;
@@ -160,7 +160,7 @@ module test_Keyboard;
 	
 	initial begin	
 		#(CLOCK*5);
-		//@(negedge clk) from_kb = 1;
+		
 		@(negedge to_kb);
 		#(KEY_SIG_DELAY*21); // reset packet
 		
