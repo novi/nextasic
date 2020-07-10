@@ -5,6 +5,8 @@ module Sender(
 	input wire [39:0] in_data,
 	input wire in_data_valid,	
 	output wire sout // serial out
+	//output wire can_send_after,
+	//output wire send_busy
 );
 
 	localparam READY = 1'b0; // define state
@@ -17,6 +19,9 @@ module Sender(
 	
 	reg state = READY;
 
+	//assign can_send_after = (count == 41) ? 1'b1 : 0;
+	//assign send_busy = state;
+
 	always@ (negedge clk) begin
 		case (state)
 			READY: if (in_data_valid) begin
@@ -26,7 +31,7 @@ module Sender(
 				count <= 0;
 			end
 			SEND: begin
-				if (count == 41) begin
+				if (count == 41) begin // 41 is bytes to send, 8 is wait for ready
 					state <= READY;
 				end else begin
 					data[0] <= 0;

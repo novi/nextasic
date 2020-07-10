@@ -2,6 +2,7 @@
 
 module Keyboard(
 	input wire clk, // mon clk
+	// output reg data_ready_ = 0,
 	output reg data_ready = 0,
 	output reg is_mouse_data = 0, // 0 is keyboard data
 	output reg [15:0] keyboard_data, // or mouse data
@@ -21,7 +22,7 @@ module Keyboard(
 	localparam READY_PENDING = 2'b01;
 	localparam READY_READY = 2'b10;
 	
-	//reg keyboard_ready = 0;
+	//reg data_ready = 0;
 	reg [1:0] ready_state = READY_NOT;
 	reg [5:0] send_count = 0;
 	reg is_send_query = 0; // if is_send_query, the packet size is 8bit, otherwise 21bit
@@ -42,6 +43,10 @@ module Keyboard(
 	assign debug[3] = is_recving;
 	assign debug[4] = can_recv_start;
 	reg debug_packet_loss = 0;
+	
+	// always@ (negedge clk) begin
+	// 	data_ready_ <= data_ready;
+	// end
 	
 	always@ (posedge clk) begin
 		if (key_clk_count == KEY_CLK) begin
@@ -74,7 +79,7 @@ module Keyboard(
 				end else begin
 					// no data
 					if (ready_state == READY_PENDING) 
-						if (pending_count == 2'd3) begin
+						if (pending_count == 2'd2) begin
 							ready_state <= READY_NOT; // need reset
 						end else begin
 							pending_count <= pending_count + 1'b1;

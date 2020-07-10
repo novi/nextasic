@@ -68,3 +68,5 @@ db/
 _output_files/
 simulation/
 PLLJ_PLLSPE_INFO.txt
+*.jic
+*.cdf
