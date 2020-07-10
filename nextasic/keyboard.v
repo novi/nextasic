@@ -40,7 +40,7 @@ module Keyboard(
 	assign debug[2] = data_receved;
 	assign debug[1:0] = ready_state;
 	assign debug[3] = is_recving;
-	assign debug[4] = recv_count == 5'd21 ? 1 : 0;
+	assign debug[4] = can_recv_start;
 	reg debug_packet_loss = 0;
 	
 	always@ (posedge clk) begin
@@ -99,12 +99,13 @@ module Keyboard(
 			is_recving <= 1;
 			recv_count <= 0;
 			recv_delay <= 0;
-			can_recv_start <= 0;
+			//can_recv_start <= 0;
 		end else if (is_recving) begin
 			if (recv_count == 5'd21) begin
 				// recv done
 				is_recving <= 0;
-				// can_recv_start <= 0;
+				can_recv_start <= 0;
+				recv_count <= 0; // TODO: why need this?
 				casex (tmp)
 					21'b10000000001100000000?: begin // ready response
 						ready_state <= READY_READY;
