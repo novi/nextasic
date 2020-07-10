@@ -10,7 +10,8 @@ module Keyboard(
 	output reg to_kb = 1
 );
 
-	localparam KEY_CLK = 5'd26; // 54us
+	localparam KEY_CLK = 9'd269; // 54us
+	localparam KEY_CLK_HALF = 9'd134;
 	
 	localparam QUERY_KEYBOARD = 1'b0;
 	localparam QUERY_MOUSE = 1'b1;
@@ -27,11 +28,13 @@ module Keyboard(
 	reg is_sending = 0;
 	reg query_state = QUERY_KEYBOARD;
 	reg data_receved = 0;
-	reg [4:0] key_clk_count = 0;
+	reg [8:0] key_clk_count = 0;
 	
 	reg is_recving = 0;
 	reg [5:0] recv_count;
-	reg [4:0] recv_delay;
+	reg [8:0] recv_delay;
+	reg [1:0] pending_count;
+	reg can_recv_start = 0;
 	
 	
 	always@ (posedge clk) begin
@@ -44,6 +47,7 @@ module Keyboard(
 					tmp <= 21'b111101111110000000000;
 					is_send_query <= 0;
 					ready_state <= READY_PENDING;
+					pending_count <= 0;
 				end else begin
 					if (query_state == QUERY_KEYBOARD)
 						tmp <= 21'b00001000xxxxxxxxxxxxx;
@@ -53,6 +57,7 @@ module Keyboard(
 						is_mouse_data <= query_state == QUERY_KEYBOARD ? 0 : 1;
 					query_state <= ~query_state;
 					is_send_query <= 1;
+					can_recv_start <= 1;
 				end
 				to_kb <= 0; // start bit
 				is_sending <= 1;
@@ -61,8 +66,15 @@ module Keyboard(
 					data_receved <= 0;
 				end else begin
 					// no data
-					if (ready_state == READY_READY)
-						ready_state <= READY_NOT; // need reset
+					case (ready_state)
+						READY_READY: ready_state <= READY_NOT; // need reset
+						READY_PENDING: if (pending_count == 2'd2) begin
+							pending_count <= 0;
+							ready_state <= READY_NOT;
+						end else begin
+							pending_count <= pending_count + 1'b1;
+						end
+					endcase
 				end
 			end else if ((is_send_query && send_count == 5'd8) || (!is_send_query && send_count == 5'd21)) begin
 				// end of the packet sending
@@ -77,16 +89,17 @@ module Keyboard(
 		end
 	
 		// from_kb sampling
-		if (!is_sending && from_kb == 0 && !is_recving) begin
+		if (can_recv_start && !is_sending && from_kb == 0 && !is_recving) begin
 			is_recving <= 1;
 			recv_count <= 0;
 			recv_delay <= 0;
+			can_recv_start <= 0;
 		end
 		
 		if (is_recving) begin
 			if (recv_count == 5'd21) begin
 				// recv done
-				is_recving <= 0;
+				is_recving <= 0;				
 				casex (tmp)
 					21'b11100000000110000000?: begin // ready response
 						ready_state <= READY_READY;
@@ -99,7 +112,7 @@ module Keyboard(
 						data_ready <= 1;
 					end
 				endcase
-			end else if (recv_count == 0 && recv_delay == 5'd12) begin 
+			end else if (recv_count == 0 && recv_delay == KEY_CLK_HALF) begin 
 				// start getting data from kb
 				recv_delay <= 0;
 				recv_count <= 5'd1; // recv_count <= recv_count + 1'b1;
@@ -128,7 +141,7 @@ module test_Keyboard;
 	
 	parameter CLOCK = 200;
 	
-	parameter KEY_SIG_DELAY = 5400;
+	parameter KEY_SIG_DELAY = 54000;
 	
 	localparam PACKET_READY = 21'b000000001100000000111;
 	localparam PACKET_DATA = 21'b011011000100000000101;
