@@ -28,8 +28,9 @@ module nextasic(
 	wire [9:0] debug_test_pins;
 	
 	assign mclk_out = mclk;
-	assign debug_test_pins_out = ~debug_test_pins;
-	assign debug_test_pins[4:3] = 2'b00;
+	//assign debug_test_pins_out = ~debug_test_pins;
+	assign debug_test_pins_out = debug_test_pins;
+	// assign debug_test_pins[4:3] = 2'b00;
 	assign debug_test_pins[9:7] = 3'b000;
 	
 	wire [39:0] in_data;
@@ -78,12 +79,13 @@ module nextasic(
 		keyboard_data,
 		keyboard_data_retrieved,
 		from_kb,
-		to_kb
+		to_kb,
+		debug_test_pins[4:0]
 	);
 	
-	assign debug_test_pins[0] = data_recv;
-	assign debug_test_pins[2] = is_audio_sample;
-	assign debug_test_pins[1] = all_1_packet;
+	// assign debug_test_pins[0] = data_recv;
+	// assign debug_test_pins[2] = is_audio_sample;
+	// assign debug_test_pins[1] = all_1_packet;
 
 	// DebugDataSender debug_sender(
 	// 	mon_clk,

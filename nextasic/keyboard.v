@@ -7,11 +7,12 @@ module Keyboard(
 	output reg [15:0] keyboard_data, // or mouse data
 	input wire keyboard_data_retrieved,
 	input wire from_kb,
-	output reg to_kb = 1
+	output reg to_kb = 1,
+	output wire [4:0] debug
 );
 
-	localparam KEY_CLK = 9'd269; // 54us
-	localparam KEY_CLK_HALF = 9'd134;
+	localparam KEY_CLK = 9'd264; // 53us
+	localparam KEY_CLK_HALF = 9'd131;
 	
 	localparam QUERY_KEYBOARD = 1'b0;
 	localparam QUERY_MOUSE = 1'b1;
@@ -36,6 +37,10 @@ module Keyboard(
 	reg [1:0] pending_count;
 	reg can_recv_start = 0;
 	
+	assign debug[2] = data_receved;
+	assign debug[1:0] = ready_state;
+	assign debug[3] = is_recving;
+	assign debug[4] = data_ready;
 	
 	always@ (posedge clk) begin
 		if (key_clk_count == KEY_CLK) begin
@@ -54,7 +59,7 @@ module Keyboard(
 					else
  						tmp <= 21'b10001000xxxxxxxxxxxxx;
 					if (!data_ready)
-						is_mouse_data <= query_state == QUERY_KEYBOARD ? 0 : 1;
+						is_mouse_data <= query_state == QUERY_KEYBOARD ? 0 : 1'b1;
 					query_state <= ~query_state;
 					is_send_query <= 1;
 					can_recv_start <= 1;
@@ -101,13 +106,13 @@ module Keyboard(
 				// recv done
 				is_recving <= 0;				
 				casex (tmp)
-					21'b11100000000110000000?: begin // ready response
+					21'b10000000001100000000?: begin // ready response
 						ready_state <= READY_READY;
 						data_receved <= 1;
 					end
-					21'b10????????01?????????: begin
+					21'b0????????010?????????: begin // TODO: need ready
 						keyboard_data[7:0] <= tmp[8:1];
-						keyboard_data[15:8] <= tmp[18:11];
+						keyboard_data[15:8] <= tmp[19:12];
 						data_receved <= 1;
 						data_ready <= 1;
 					end
@@ -141,10 +146,10 @@ module test_Keyboard;
 	
 	parameter CLOCK = 200;
 	
-	parameter KEY_SIG_DELAY = 54000;
+	parameter KEY_SIG_DELAY = 53000;
 	
-	localparam PACKET_READY = 21'b000000001100000000111;
-	localparam PACKET_DATA = 21'b011011000100000000101;
+	localparam PACKET_READY = 21'b000000000110000000001;
+	localparam PACKET_DATA =  21'b011011001010000000010;
 
 	Keyboard keyboard(
 		clk,
@@ -207,6 +212,33 @@ module test_Keyboard;
 		// get data from buffer
 		keyboard_data_retrieved = 1;
 		@(negedge clk) keyboard_data_retrieved = 0;
+		
+		// 
+		@(negedge to_kb);
+		#(KEY_SIG_DELAY*8); // mouse query packet
+		#(KEY_SIG_DELAY*3);
+		KeyboardRes(PACKET_READY);
+		
+		//
+		@(negedge to_kb);
+		#(KEY_SIG_DELAY*8); // kb query packet
+		#(KEY_SIG_DELAY*3);
+		KeyboardRes(PACKET_READY);
+		
+		//
+		@(negedge to_kb);
+		#(KEY_SIG_DELAY*8); // mouse query packet
+		#(KEY_SIG_DELAY*3);
+		KeyboardRes(PACKET_READY);
+		
+		//
+		@(negedge to_kb);
+		#(KEY_SIG_DELAY*8); // kb query packet
+		#(KEY_SIG_DELAY*3);
+		KeyboardRes(PACKET_READY);
+		
+		
+		
 		
 		#(KEY_SIG_DELAY*200);
 		
