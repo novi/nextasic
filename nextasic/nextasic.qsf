@@ -106,8 +106,8 @@ set_location_assignment PIN_11 -to lrck
 set_location_assignment PIN_7 -to audio_data
 set_location_assignment PIN_2 -to bclk
 set_location_assignment PIN_144 -to mclk_out
-set_location_assignment PIN_70 -to to_kb
-set_location_assignment PIN_72 -to from_kb
+set_location_assignment PIN_127 -to to_kb
+set_location_assignment PIN_129 -to from_kb
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to audio_data
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to bclk
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to debug_test_pins_out[9]

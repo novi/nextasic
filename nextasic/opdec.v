@@ -18,6 +18,12 @@ module OpDecoder(
 		keyboard_led_update = 0;
 		if (op_valid)
 			casex (op)
+				16'hc5ef: begin
+					power_on_packet_R1 = 1;
+				end
+				16'hc500: begin
+					keyboard_led_update = 1;
+				end
 				16'h1f??: begin // 22khz
 					audio_starts = 1;
 				end
@@ -27,14 +33,8 @@ module OpDecoder(
 				16'hc7??: begin
 					is_audio_sample = 1;
 				end
-				16'hc5??: begin
-					keyboard_led_update = 1;
-				end
 				16'hff??: begin
 					all_1_packet = 1;
-				end
-				16'hc5ef: begin
-					power_on_packet_R1 = 1;
 				end
 				default: begin
 				end

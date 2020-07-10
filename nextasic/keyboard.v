@@ -32,7 +32,7 @@ module Keyboard(
 	reg [8:0] key_clk_count = 0;
 	
 	reg is_recving = 0;
-	reg [5:0] recv_count;
+	reg [4:0] recv_count;
 	reg [8:0] recv_delay;
 	reg [1:0] pending_count;
 	reg can_recv_start = 0;
@@ -40,7 +40,8 @@ module Keyboard(
 	assign debug[2] = data_receved;
 	assign debug[1:0] = ready_state;
 	assign debug[3] = is_recving;
-	assign debug[4] = data_ready;
+	assign debug[4] = recv_count == 5'd21 ? 1 : 0;
+	reg debug_packet_loss = 0;
 	
 	always@ (posedge clk) begin
 		if (key_clk_count == KEY_CLK) begin
@@ -59,7 +60,7 @@ module Keyboard(
 					else
  						tmp <= 21'b10001000xxxxxxxxxxxxx;
 					if (!data_ready)
-						is_mouse_data <= query_state == QUERY_KEYBOARD ? 0 : 1'b1;
+						is_mouse_data <= (query_state == QUERY_KEYBOARD ? 1'b0 : 1'b1);
 					query_state <= ~query_state;
 					is_send_query <= 1;
 					can_recv_start <= 1;
@@ -69,17 +70,17 @@ module Keyboard(
 				send_count <= 0;
 				if (data_receved) begin
 					data_receved <= 0;
+					pending_count <= 0;
 				end else begin
 					// no data
-					case (ready_state)
-						READY_READY: ready_state <= READY_NOT; // need reset
-						READY_PENDING: if (pending_count == 2'd2) begin
-							pending_count <= 0;
-							ready_state <= READY_NOT;
+					if (ready_state == READY_PENDING) 
+						if (pending_count == 2'd3) begin
+							ready_state <= READY_NOT; // need reset
 						end else begin
 							pending_count <= pending_count + 1'b1;
 						end
-					endcase
+					else if (ready_state == READY_READY) // TODO: 
+						ready_state <= READY_NOT;
 				end
 			end else if ((is_send_query && send_count == 5'd8) || (!is_send_query && send_count == 5'd21)) begin
 				// end of the packet sending
@@ -99,34 +100,44 @@ module Keyboard(
 			recv_count <= 0;
 			recv_delay <= 0;
 			can_recv_start <= 0;
-		end
-		
-		if (is_recving) begin
+		end else if (is_recving) begin
 			if (recv_count == 5'd21) begin
 				// recv done
-				is_recving <= 0;				
+				is_recving <= 0;
+				// can_recv_start <= 0;
 				casex (tmp)
 					21'b10000000001100000000?: begin // ready response
 						ready_state <= READY_READY;
 						data_receved <= 1;
 					end
 					21'b0????????010?????????: begin // TODO: need ready
-						keyboard_data[7:0] <= tmp[8:1];
-						keyboard_data[15:8] <= tmp[19:12];
 						data_receved <= 1;
-						data_ready <= 1;
+						if (!data_ready) begin // already has data, skip this recv
+							keyboard_data[7:0] <= tmp[8:1];
+							keyboard_data[15:8] <= tmp[19:12];
+							data_ready <= 1;
+							debug_packet_loss <= 0;
+						end else begin
+							debug_packet_loss <= 1;
+						end
 					end
 				endcase
 			end else if (recv_count == 0 && recv_delay == KEY_CLK_HALF) begin 
-				// start getting data from kb
-				recv_delay <= 0;
-				recv_count <= 5'd1; // recv_count <= recv_count + 1'b1;
+				// if (from_kb == 0) begin
+					// start getting data from kb
+					recv_delay <= 0;
+					recv_count <= recv_count + 1'b1;
+				// end else begin
+				// 	// not valid data, abort recving
+				// 	is_recving <= 0;
+				// end		
 			end else if (recv_delay == KEY_CLK) begin
 				recv_delay <= 0;
 				tmp[20:0] <= {from_kb, tmp[20:1]};
 				recv_count <= recv_count + 1'b1;
-			end else
+			end else begin
 				recv_delay <= recv_delay + 1'b1;
+			end
 		end
 		
 		if (keyboard_data_retrieved)
