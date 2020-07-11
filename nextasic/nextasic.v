@@ -10,6 +10,14 @@ module nextasic(
 	input wire from_kb,
 	output wire to_kb,
 	
+	// for DAC
+	input wire mclk,
+	output wire mclk_out,
+	output wire bclk,
+	output wire lrck,
+	output wire audio_data,
+	
+	//
 	input wire dummy_clk,
 	
 	input wire debug_clk,
@@ -17,16 +25,8 @@ module nextasic(
 	output wire debug_sig_on, // state
 	input wire debug_sin,
 	input wire debug_sin_start,
-	
 
-	output [9:0] debug_test_pins_out,
-	
-	// for DAC
-	input wire mclk,
-	output wire mclk_out,
-	output wire bclk,
-	output wire lrck,
-	output wire audio_data
+	output [9:0] debug_test_pins_out
 );	
 	wire [9:0] debug_test_pins;
 	
@@ -61,13 +61,14 @@ module nextasic(
 		keyboard_led_update
 	);
 	
-	wire audio_req;
+	wire audio_sample_request_mode, audio_sample_request_tick;
 	I2SSender i2s(
 		mon_clk,
 		is_audio_sample,
 		in_data[31:0],
 		audio_starts,
-		audio_req,
+		audio_sample_request_mode,
+		audio_sample_request_tick,
 		bclk,
 		lrck,
 		audio_data
@@ -82,7 +83,7 @@ module nextasic(
 		keyboard_data,
 		from_kb,
 		to_kb,
-		debug_test_pins[4:0]
+		//debug_test_pins[4:0]
 	);
 	
 	// assign debug_test_pins[0] = data_recv;
@@ -105,18 +106,14 @@ module nextasic(
 	wire [39:0] out_data;
 	wire out_valid, power_on_packet_S1, data_loss;
 	
-	//assign debug_test_pins[0] = mon_clk;
-	assign debug_test_pins[5] = audio_req;
+	assign debug_test_pins[0] = to_mon;
+	assign debug_test_pins[3] = audio_starts;
+	assign debug_test_pins[4] = audio_sample_request_tick;
+	assign debug_test_pins[5] = audio_sample_request_mode;
 	assign debug_test_pins[6] = out_valid;
 	assign debug_test_pins[7] = keyboard_data_ready;
 	assign debug_test_pins[8] = data_loss;
 	assign debug_test_pins[9] = from_mon;
-	
-	// wire mon_clk_8;
-	// Divider8 mon_clk_div(
-	// 	mon_clk,
-	// 	mon_clk_8
-	// );
 	
 	Delay #(.DELAY(14000), .W(14)) power_on_packet_delay( // 2.8ms delay
 		mon_clk,
@@ -126,7 +123,7 @@ module nextasic(
 	);
 	
 	OpEncoder op_enc(
-		audio_req,
+		0,
 		power_on_packet_S1,
 		keyboard_data_ready,
 		is_mouse_data,
@@ -139,10 +136,10 @@ module nextasic(
 		mon_clk,
 		out_data,
 		out_valid,
+		audio_sample_request_mode,
+		audio_sample_request_tick,
 		from_mon,
 		data_loss
-		//can_send_after,
-		//send_busy
 	);
 	
 	//

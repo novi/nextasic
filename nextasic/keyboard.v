@@ -10,8 +10,8 @@ module Keyboard(
 	output wire [4:0] debug
 );
 
-	localparam KEY_CLK = 9'd264; // 53us
-	localparam KEY_CLK_HALF = 9'd131;
+	localparam KEY_CLK = 9'd265-1; // 53us
+	localparam KEY_CLK_HALF = 9'd132-1;
 	
 	localparam QUERY_KEYBOARD = 1'b0;
 	localparam QUERY_MOUSE = 1'b1;
