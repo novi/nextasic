@@ -2,11 +2,9 @@
 
 module Keyboard(
 	input wire clk, // mon clk
-	// output reg data_ready_ = 0,
-	output reg data_ready = 0,
+	output reg data_ready_ = 0,
 	output reg is_mouse_data = 0, // 0 is keyboard data
-	output reg [15:0] keyboard_data, // or mouse data
-	input wire keyboard_data_retrieved,
+	output wire [15:0] keyboard_data, // or mouse data
 	input wire from_kb,
 	output reg to_kb = 1,
 	output wire [4:0] debug
@@ -22,7 +20,7 @@ module Keyboard(
 	localparam READY_PENDING = 2'b01;
 	localparam READY_READY = 2'b10;
 	
-	//reg data_ready = 0;
+	reg data_ready = 0;
 	reg [1:0] ready_state = READY_NOT;
 	reg [5:0] send_count = 0;
 	reg is_send_query = 0; // if is_send_query, the packet size is 8bit, otherwise 21bit
@@ -38,15 +36,17 @@ module Keyboard(
 	reg [1:0] pending_count;
 	reg can_recv_start = 0;
 	
+	assign keyboard_data[7:0] = tmp[8:1];
+	assign keyboard_data[15:8] = tmp[19:12];
+	
 	assign debug[2] = data_receved;
 	assign debug[1:0] = ready_state;
 	assign debug[3] = is_recving;
 	assign debug[4] = can_recv_start;
-	reg debug_packet_loss = 0;
 	
-	// always@ (negedge clk) begin
-	// 	data_ready_ <= data_ready;
-	// end
+	always@ (negedge clk) begin
+		data_ready_ <= data_ready;
+	end
 	
 	always@ (posedge clk) begin
 		if (key_clk_count == KEY_CLK) begin
@@ -104,6 +104,7 @@ module Keyboard(
 			is_recving <= 1;
 			recv_count <= 0;
 			recv_delay <= 0;
+			data_ready <= 0;
 			//can_recv_start <= 0;
 		end else if (is_recving) begin
 			if (recv_count == 5'd21) begin
@@ -116,16 +117,9 @@ module Keyboard(
 						ready_state <= READY_READY;
 						data_receved <= 1;
 					end
-					21'b0????????010?????????: begin // TODO: need ready
+					21'b0????????010?????????: begin // TODO: need keyboard state ready
 						data_receved <= 1;
-						if (!data_ready) begin // already has data, skip this recv
-							keyboard_data[7:0] <= tmp[8:1];
-							keyboard_data[15:8] <= tmp[19:12];
-							data_ready <= 1;
-							debug_packet_loss <= 0;
-						end else begin
-							debug_packet_loss <= 1;
-						end
+						data_ready <= 1;
 					end
 				endcase
 			end else if (recv_count == 0 && recv_delay == KEY_CLK_HALF) begin 
@@ -146,7 +140,7 @@ module Keyboard(
 			end
 		end
 		
-		if (keyboard_data_retrieved)
+		if (!is_recving)
 			data_ready <= 0;
 	end
 
@@ -157,7 +151,6 @@ endmodule
 module test_Keyboard;
 	reg clk = 0;
 	reg from_kb = 1;
-	reg keyboard_data_retrieved = 0;
 	wire to_kb, data_ready, is_mouse_data;
 	wire [15:0] keyboard_data;
 	
@@ -173,9 +166,9 @@ module test_Keyboard;
 		data_ready,
 		is_mouse_data,
 		keyboard_data,
-		keyboard_data_retrieved,
 		from_kb,
-		to_kb
+		to_kb,
+		
 	);
 	
 	always #(CLOCK/2) clk = ~clk;
@@ -224,11 +217,6 @@ module test_Keyboard;
 		
 		// recv response
 		KeyboardRes(PACKET_DATA);
-		#(CLOCK*5);
-		
-		// get data from buffer
-		keyboard_data_retrieved = 1;
-		@(negedge clk) keyboard_data_retrieved = 0;
 		
 		// 
 		@(negedge to_kb);

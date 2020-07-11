@@ -1,19 +1,16 @@
 `default_nettype none
 
 module OpEncoder(
-	input wire can_send_after,
 	input wire audio_sample_request,
 	input wire power_on_packet_S1,
 	input wire keyboard_data_ready,
 	input wire is_mouse_data,
 	input wire [15:0] keyboard_data, // 2 bytes
 	output reg [39:0] data,
-	output reg data_valid,
-	output reg keyboard_data_retrieved
+	output reg data_valid
 );
 
 	always@ (*) begin
-		keyboard_data_retrieved = 0;
 		data = 40'hxxxxxxxxxx;
 		data_valid = 0;
 		if (power_on_packet_S1) begin
@@ -28,7 +25,6 @@ module OpEncoder(
 			data[23:16] = 8'h00;
 			data[15:0] = keyboard_data;
 			data_valid = 1;
-			keyboard_data_retrieved = 1;
 		end
 			
 	end

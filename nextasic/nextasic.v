@@ -74,15 +74,15 @@ module nextasic(
 	);
 	
 	wire [15:0] keyboard_data;
-	wire keyboard_data_ready, is_mouse_data, keyboard_data_retrieved;
+	wire keyboard_data_ready, is_mouse_data;
 	Keyboard keyboard(
 		mon_clk,
 		keyboard_data_ready,
 		is_mouse_data,
 		keyboard_data,
-		keyboard_data_retrieved,
 		from_kb,
 		to_kb,
+		debug_test_pins[4:0]
 	);
 	
 	// assign debug_test_pins[0] = data_recv;
@@ -103,13 +103,13 @@ module nextasic(
 	
 	
 	wire [39:0] out_data;
-	wire out_valid, power_on_packet_S1, send_busy, can_send_after;
+	wire out_valid, power_on_packet_S1, data_loss;
 	
-	assign debug_test_pins[0] = mon_clk;
-	assign debug_test_pins[5] = can_send_after;
+	//assign debug_test_pins[0] = mon_clk;
+	assign debug_test_pins[5] = audio_req;
 	assign debug_test_pins[6] = out_valid;
 	assign debug_test_pins[7] = keyboard_data_ready;
-	assign debug_test_pins[8] = keyboard_data_retrieved;
+	assign debug_test_pins[8] = data_loss;
 	assign debug_test_pins[9] = from_mon;
 	
 	// wire mon_clk_8;
@@ -126,15 +126,13 @@ module nextasic(
 	);
 	
 	OpEncoder op_enc(
-		can_send_after,
 		audio_req,
 		power_on_packet_S1,
 		keyboard_data_ready,
 		is_mouse_data,
 		keyboard_data,
 		out_data,
-		out_valid,
-		keyboard_data_retrieved
+		out_valid
 	);
 
 	Sender sender(
@@ -142,6 +140,7 @@ module nextasic(
 		out_data,
 		out_valid,
 		from_mon,
+		data_loss
 		//can_send_after,
 		//send_busy
 	);

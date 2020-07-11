@@ -1,7 +1,7 @@
 `default_nettype none
 
 module OpDecoder(
-	input [15:0] op,
+	input wire [15:0] op,
 	input wire op_valid,
 	output reg is_audio_sample,
 	output reg audio_starts,
