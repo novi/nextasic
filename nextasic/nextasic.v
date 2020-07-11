@@ -123,7 +123,6 @@ module nextasic(
 	);
 	
 	OpEncoder op_enc(
-		0,
 		power_on_packet_S1,
 		keyboard_data_ready,
 		is_mouse_data,

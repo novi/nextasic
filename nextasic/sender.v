@@ -108,6 +108,12 @@ module test_Sender;
 	);
 	
 	always #(CLOCK/2) clk = ~clk;
+	always #(CLOCK*AUDIO_REQ_INTERVAL) begin
+		@(negedge clk);
+		audio_sample_request_tick = 1;
+		@(negedge clk);
+		audio_sample_request_tick = 0;
+	end
 
 	task sendData;
 		begin
@@ -140,10 +146,7 @@ module test_Sender;
 		
 		// with audio sample request
 		audio_sample_request_mode = 1;
-		@(negedge clk);
-		audio_sample_request_tick = 1;
-		@(negedge clk);
-		audio_sample_request_tick = 0;
+		
 		#(CLOCK*60);
 		sendData();
 		#(CLOCK*AUDIO_REQ_INTERVAL*2);
