@@ -1,9 +1,14 @@
 `default_nettype none
 
 module nextasic(
+	// for NeXT computer
 	input wire mon_clk,
 	input wire to_mon,
 	output wire from_mon,
+	
+	// for Keyboard
+	input wire from_kb,
+	output wire to_kb,
 	
 	input wire dummy_clk,
 	
@@ -16,6 +21,7 @@ module nextasic(
 
 	output [9:0] debug_test_pins_out,
 	
+	// for DAC
 	input wire mclk,
 	output wire mclk_out,
 	output wire bclk,
@@ -25,9 +31,10 @@ module nextasic(
 	wire [9:0] debug_test_pins;
 	
 	assign mclk_out = mclk;
-	assign debug_test_pins_out = ~debug_test_pins;
-	assign debug_test_pins[4:3] = 2'b00;
-	assign debug_test_pins[9:7] = 3'b000;
+	//assign debug_test_pins_out = ~debug_test_pins;
+	assign debug_test_pins_out = debug_test_pins;
+	// assign debug_test_pins[4:3] = 2'b00;
+	//assign debug_test_pins[9:7] = 3'b000;
 	
 	wire [39:0] in_data;
 	wire data_recv;
@@ -43,14 +50,15 @@ module nextasic(
 		bclk
 	);
 	
-	wire is_audio_sample, audio_starts, all_1_packet, power_on_packet_R1;
+	wire is_audio_sample, audio_starts, all_1_packet, power_on_packet_R1, keyboard_led_update;
 	OpDecoder op_decoder(
 		in_data[39:24],
 		data_recv,
 		is_audio_sample,
 		audio_starts,
 		all_1_packet,
-		power_on_packet_R1
+		power_on_packet_R1,
+		keyboard_led_update
 	);
 	
 	wire audio_req;
@@ -65,9 +73,21 @@ module nextasic(
 		audio_data
 	);
 	
-	assign debug_test_pins[0] = data_recv;
-	assign debug_test_pins[2] = is_audio_sample;
-	assign debug_test_pins[1] = all_1_packet;
+	wire [15:0] keyboard_data;
+	wire keyboard_data_ready, is_mouse_data;
+	Keyboard keyboard(
+		mon_clk,
+		keyboard_data_ready,
+		is_mouse_data,
+		keyboard_data,
+		from_kb,
+		to_kb,
+		debug_test_pins[4:0]
+	);
+	
+	// assign debug_test_pins[0] = data_recv;
+	// assign debug_test_pins[2] = is_audio_sample;
+	// assign debug_test_pins[1] = all_1_packet;
 
 	// DebugDataSender debug_sender(
 	// 	mon_clk,
@@ -83,10 +103,14 @@ module nextasic(
 	
 	
 	wire [39:0] out_data;
-	wire out_valid, power_on_packet_S1;
+	wire out_valid, power_on_packet_S1, data_loss;
 	
+	//assign debug_test_pins[0] = mon_clk;
 	assign debug_test_pins[5] = audio_req;
 	assign debug_test_pins[6] = out_valid;
+	assign debug_test_pins[7] = keyboard_data_ready;
+	assign debug_test_pins[8] = data_loss;
+	assign debug_test_pins[9] = from_mon;
 	
 	// wire mon_clk_8;
 	// Divider8 mon_clk_div(
@@ -104,6 +128,9 @@ module nextasic(
 	OpEncoder op_enc(
 		audio_req,
 		power_on_packet_S1,
+		keyboard_data_ready,
+		is_mouse_data,
+		keyboard_data,
 		out_data,
 		out_valid
 	);
@@ -112,7 +139,10 @@ module nextasic(
 		mon_clk,
 		out_data,
 		out_valid,
-		from_mon
+		from_mon,
+		data_loss
+		//can_send_after,
+		//send_busy
 	);
 	
 	//
