@@ -1,7 +1,6 @@
 `default_nettype none
 
 module OpEncoder(
-	input wire audio_sample_request,
 	input wire power_on_packet_S1,
 	input wire keyboard_data_ready,
 	input wire is_mouse_data,
@@ -15,9 +14,6 @@ module OpEncoder(
 		data_valid = 0;
 		if (power_on_packet_S1) begin
 			data = 40'hc671000000; // may be ok 40'hc670000000 as well
-			data_valid = 1;
-		end else if (audio_sample_request) begin // give send priority for audio rather than keyboard data
-			data = 40'h0700000000;
 			data_valid = 1;
 		end else if (keyboard_data_ready) begin
 			data[39:32] = 8'hc6;
