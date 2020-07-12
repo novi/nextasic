@@ -22,17 +22,56 @@ module Sender(
 	assign sout = data[40];
 	
 	reg state = READY;
+	
+	wire packet_send_end;
+	assign packet_send_end = count == (41+3);
 
 	always@ (posedge clk) begin
 		case (state)
-			READY: begin			
-				if (audio_sample_request_mode) begin
-					if (audio_sample_request_tick) begin
-						data[39:0] <= 40'h0700000000; // audio sample request packet
-						state <= SEND;
+			READY: begin
+				if (audio_sample_request_tick) begin
+					if (audio_sample_request_mode) begin
 						data[40] <= 1;
-						count <= 0;
+						data[39:0] <= 40'h0700000000; // audio sample request packet
+					end else begin
+						data[40] <= 0;
+						data[39:0] <= 0;
+					end
+					state <= SEND;
+					count <= 0;
+				end
+				
+				if (in_data_valid) begin
+					if (has_buffer_data)
+						data_loss <= 1;
+					else begin
+						has_buffer_data <= 1;
+						buffer <= in_data;
+					end
+				end
+			end
+			SEND: begin
+				if (packet_send_end) begin
+					data_loss <= has_buffer_data & in_data_valid;
+					if (has_buffer_data) begin
+						data[40] <= 1;
+						data[39:0] <= buffer;
+						has_buffer_data <= 0;
 					end else if (in_data_valid) begin
+						buffer <= in_data;
+						has_buffer_data <= 1;
+					end
+					count <= count + 1'b1;
+				end else if (count == (41+3+41+1)) begin
+					state <= READY;
+					data_loss <= 0;
+				end else begin
+					data[0] <= 0;
+					data[40:1] <= data[39:0];
+					count <= count + 1'b1;
+				end
+				if (!packet_send_end) begin
+					if (in_data_valid) begin
 						if (has_buffer_data)
 							data_loss <= 1;
 						else begin
@@ -40,40 +79,6 @@ module Sender(
 							buffer <= in_data;
 						end
 					end
-				end else if (has_buffer_data | in_data_valid) begin
-					data[39:0] <= has_buffer_data ? buffer : in_data;
-					has_buffer_data <= 0;
-					state <= SEND;
-					data[40] <= 1;
-					count <= 0;
-				end
-			end
-			SEND: begin
-				if (count == (41+3+41+1)) begin
-					state <= READY;
-				end else if (count == (41+3) ) begin // packet bit count
-					if (has_buffer_data | in_data_valid) begin
-						data[40] <= 1;
-						data[39:0] <= has_buffer_data ? buffer : in_data;
-						has_buffer_data <= 0;
-						data_loss <= has_buffer_data & in_data_valid;
-						count <= count + 1'b1;
-					end else begin
-						data_loss <= 0;
-						state <= READY;
-					end
-				end else if (in_data_valid) begin
-					if (has_buffer_data) begin
-						data_loss <= 1;
-					end else begin
-						buffer <= in_data;
-						has_buffer_data <= 1;
-					end
-					count <= count + 1'b1;
-				end else begin
-					data[0] <= 0;
-					data[40:1] <= data[39:0];
-					count <= count + 1'b1;
 				end
 			end
 		endcase
