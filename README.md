@@ -1,6 +1,6 @@
 # nextasic
 
-Verilog HDL implementaion of ASIC for NeXT Sound Box hardware.
+Verilog HDL implementation of ASIC for NeXT Sound Box hardware.
 
 ### Current Status
 
