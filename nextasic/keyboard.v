@@ -4,7 +4,7 @@ module Keyboard(
 	input wire clk, // mon clk
 	input wire led_data_valid,
 	input wire [1:0] led_data_in,
-	output reg data_ready_ = 0,
+	output reg data_available_ = 0,
 	output reg is_mouse_data = 0, // 0 is keyboard data
 	output wire [15:0] keyboard_data, // or mouse data
 	input wire from_kb,
@@ -22,8 +22,8 @@ module Keyboard(
 	localparam READY_PENDING = 2'b01;
 	localparam READY_READY = 2'b10;
 	
-	reg data_ready = 0;
-	reg [1:0] ready_state = READY_NOT;
+	reg data_available = 0;
+	reg [1:0] kb_state = READY_NOT;
 	reg [5:0] send_count = 0;
 	reg is_send_short = 0; // if is_send_short, the packet size is 8bit, otherwise 21bit
 	reg [20:0] tmp; // 21 bit
@@ -45,7 +45,7 @@ module Keyboard(
 	assign keyboard_data[15:8] = tmp[19:12];
 	
 	assign debug[2] = data_receved;
-	assign debug[1:0] = ready_state;
+	assign debug[1:0] = kb_state;
 	assign debug[3] = is_recving;
 	assign debug[4] = can_recv_start;
 	
@@ -53,19 +53,18 @@ module Keyboard(
 	assign end_of_send_packet = (is_send_short && send_count == 5'd8) || (!is_send_short && send_count == 5'd21);
 	
 	always@ (negedge clk) begin
-		data_ready_ <= data_ready;
+		data_available_ <= data_available;
 	end
 	
 	always@ (posedge clk) begin
 		if (key_clk_count == KEY_CLK) begin
 			key_clk_count <= 0;
-			// keyboard clk tick
-			send_count <= send_count + 1'b1; // TODO: move
+			// keyboard clk tick, 53us
 			if (send_count == 6'd40) begin
-				if (ready_state == READY_NOT) begin
+				if (kb_state == READY_NOT) begin
 					tmp <= 21'b111101111110000000000;
 					is_send_short <= 0;
-					ready_state <= READY_PENDING;
+					kb_state <= READY_PENDING;
 					pending_count <= 0;
 				end else if (!led_data_valid && need_led_update) begin
 					need_led_update <= 0;
@@ -78,7 +77,7 @@ module Keyboard(
 						tmp <= 21'b00001000xxxxxxxxxxxxx;
 					else
  						tmp <= 21'b10001000xxxxxxxxxxxxx;
-					if (!data_ready)
+					if (!data_available)
 						is_mouse_data <= (query_state == QUERY_KEYBOARD ? 1'b0 : 1'b1);
 					query_state <= ~query_state;
 					is_send_short <= 1;
@@ -92,21 +91,25 @@ module Keyboard(
 					pending_count <= 0;
 				end else begin
 					// no data
-					if (ready_state == READY_PENDING) 
+					if (kb_state == READY_PENDING) 
 						if (pending_count == 2'd2) begin
-							ready_state <= READY_NOT; // need reset
+							kb_state <= READY_NOT; // need reset
 						end else begin
 							pending_count <= pending_count + 1'b1;
 						end
-					else if (is_send_short && ready_state == READY_READY) // is_send_short = is query packet
-						ready_state <= READY_NOT;  // TODO: 
+					else if (is_send_short && kb_state == READY_READY) // is_send_short = is query packet
+						kb_state <= READY_NOT;  // TODO: 
 				end
 			end else if (end_of_send_packet) begin
 				to_kb <= 1;
 				is_sending <= 0;
-			end else if (is_sending && !is_recving) begin
-				to_kb <= tmp[20];
-				tmp[20:1] <= tmp[19:0];
+				send_count <= send_count + 1'b1;
+			end else begin
+				if (is_sending && !is_recving) begin
+					to_kb <= tmp[20];
+					tmp[20:1] <= tmp[19:0];
+				end
+				send_count <= send_count + 1'b1;
 			end
 		end else begin
 			key_clk_count = key_clk_count + 1'b1;
@@ -122,7 +125,7 @@ module Keyboard(
 			is_recving <= 1;
 			recv_count <= 0;
 			recv_delay <= 0;
-			data_ready <= 0;
+			data_available <= 0;
 			//can_recv_start <= 0;
 		end else if (is_recving) begin
 			if (recv_count == 5'd21) begin
@@ -132,12 +135,12 @@ module Keyboard(
 				recv_count <= 0; // TODO: why need this?
 				casex (tmp)
 					21'b10000000001100000000?: begin // ready response
-						ready_state <= READY_READY;
+						kb_state <= READY_READY;
 						data_receved <= 1;
 					end
-					21'b0????????010?????????: begin // TODO: need keyboard state ready
+					21'b0????????010?????????: if (kb_state == READY_READY) begin
 						data_receved <= 1;
-						data_ready <= 1;
+						data_available <= 1;
 					end
 				endcase
 			end else if (recv_count == 0 && recv_delay == KEY_CLK_HALF) begin 
@@ -159,7 +162,7 @@ module Keyboard(
 		end
 		
 		if (!is_recving)
-			data_ready <= 0;
+			data_available <= 0;
 	end
 
 endmodule

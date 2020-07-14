@@ -61,7 +61,7 @@ module I2SSender(
 			audio_req <= 0;
 		
 		
-		if (req_delay == 5'd21) begin // TODO: timing
+		if (req_delay == 5'd22) begin // TODO: timing
 			req_delay <= 0;
 			audio_req <= 1;
 			audio_on_req_mode <= on_req_mode;
