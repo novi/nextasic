@@ -82,6 +82,8 @@ module nextasic(
 	wire keyboard_data_ready, is_mouse_data;
 	Keyboard keyboard(
 		mon_clk,
+		keyboard_led_update,
+		in_data[17:16],
 		keyboard_data_ready,
 		is_mouse_data,
 		keyboard_data,
@@ -116,9 +118,9 @@ module nextasic(
 	assign debug_test_pins[3] = audio_starts;
 	assign debug_test_pins[4] = audio_sample_request_tick;
 	assign debug_test_pins[5] = audio_sample_request_mode;
-	assign debug_test_pins[6] = out_valid;
+	assign debug_test_pins[6] = is_audio_sample;
 	assign debug_test_pins[7] = keyboard_data_ready;
-	assign debug_test_pins[8] = data_loss;
+	assign debug_test_pins[8] = keyboard_led_update;
 	assign debug_test_pins[9] = from_mon;
 	
 	Delay #(.DELAY(14000), .W(14)) power_on_packet_delay( // 2.8ms delay

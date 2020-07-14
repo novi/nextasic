@@ -2,6 +2,8 @@
 
 module Keyboard(
 	input wire clk, // mon clk
+	input wire led_data_valid,
+	input wire [1:0] led_data_in,
 	output reg data_ready_ = 0,
 	output reg is_mouse_data = 0, // 0 is keyboard data
 	output wire [15:0] keyboard_data, // or mouse data
@@ -23,7 +25,7 @@ module Keyboard(
 	reg data_ready = 0;
 	reg [1:0] ready_state = READY_NOT;
 	reg [5:0] send_count = 0;
-	reg is_send_query = 0; // if is_send_query, the packet size is 8bit, otherwise 21bit
+	reg is_send_short = 0; // if is_send_short, the packet size is 8bit, otherwise 21bit
 	reg [20:0] tmp; // 21 bit
 	reg is_sending = 0;
 	reg query_state = QUERY_KEYBOARD;
@@ -36,6 +38,9 @@ module Keyboard(
 	reg [1:0] pending_count;
 	reg can_recv_start = 0;
 	
+	reg need_led_update = 0;
+	reg [1:0] led_data;
+	
 	assign keyboard_data[7:0] = tmp[8:1];
 	assign keyboard_data[15:8] = tmp[19:12];
 	
@@ -43,6 +48,9 @@ module Keyboard(
 	assign debug[1:0] = ready_state;
 	assign debug[3] = is_recving;
 	assign debug[4] = can_recv_start;
+	
+	wire end_of_send_packet;
+	assign end_of_send_packet = (is_send_short && send_count == 5'd8) || (!is_send_short && send_count == 5'd21);
 	
 	always@ (negedge clk) begin
 		data_ready_ <= data_ready;
@@ -52,13 +60,19 @@ module Keyboard(
 		if (key_clk_count == KEY_CLK) begin
 			key_clk_count <= 0;
 			// keyboard clk tick
-			send_count <= send_count + 1'b1;
+			send_count <= send_count + 1'b1; // TODO: move
 			if (send_count == 6'd40) begin
 				if (ready_state == READY_NOT) begin
 					tmp <= 21'b111101111110000000000;
-					is_send_query <= 0;
+					is_send_short <= 0;
 					ready_state <= READY_PENDING;
 					pending_count <= 0;
+				end else if (!led_data_valid && need_led_update) begin
+					need_led_update <= 0;
+					tmp[20:9] <= 12'b000000001110;
+					tmp[8:7] <= led_data;
+					tmp[6:0] <= 0;
+					is_send_short <= 0;
 				end else begin
 					if (query_state == QUERY_KEYBOARD)
 						tmp <= 21'b00001000xxxxxxxxxxxxx;
@@ -67,7 +81,7 @@ module Keyboard(
 					if (!data_ready)
 						is_mouse_data <= (query_state == QUERY_KEYBOARD ? 1'b0 : 1'b1);
 					query_state <= ~query_state;
-					is_send_query <= 1;
+					is_send_short <= 1;
 					can_recv_start <= 1;
 				end
 				to_kb <= 0; // start bit
@@ -84,11 +98,10 @@ module Keyboard(
 						end else begin
 							pending_count <= pending_count + 1'b1;
 						end
-					else if (ready_state == READY_READY) // TODO: 
-						ready_state <= READY_NOT;
+					else if (is_send_short && ready_state == READY_READY) // is_send_short = is query packet
+						ready_state <= READY_NOT;  // TODO: 
 				end
-			end else if ((is_send_query && send_count == 5'd8) || (!is_send_query && send_count == 5'd21)) begin
-				// end of the packet sending
+			end else if (end_of_send_packet) begin
 				to_kb <= 1;
 				is_sending <= 0;
 			end else if (is_sending && !is_recving) begin
@@ -97,6 +110,11 @@ module Keyboard(
 			end
 		end else begin
 			key_clk_count = key_clk_count + 1'b1;
+		end
+		
+		if (led_data_valid) begin
+			led_data <= led_data_in;
+			need_led_update <= 1;
 		end
 	
 		// from_kb sampling
@@ -151,6 +169,8 @@ endmodule
 module test_Keyboard;
 	reg clk = 0;
 	reg from_kb = 1;
+	reg led_data_valid = 0;
+	reg [1:0] led_data_in;
 	wire to_kb, data_ready, is_mouse_data;
 	wire [15:0] keyboard_data;
 	
@@ -163,6 +183,8 @@ module test_Keyboard;
 
 	Keyboard keyboard(
 		clk,
+		led_data_valid,
+		led_data_in,
 		data_ready,
 		is_mouse_data,
 		keyboard_data,
@@ -242,7 +264,16 @@ module test_Keyboard;
 		#(KEY_SIG_DELAY*3);
 		KeyboardRes(PACKET_READY);
 		
+		led_data_in = 2'b11;
+		@(negedge clk) led_data_valid = 1;
+		@(negedge clk) led_data_valid = 0;
+		#(KEY_SIG_DELAY*40);
 		
+		//
+		@(negedge to_kb);
+		#(KEY_SIG_DELAY*8); // mouse query packet
+		#(KEY_SIG_DELAY*3);
+		KeyboardRes(PACKET_READY);
 		
 		
 		#(KEY_SIG_DELAY*200);
