@@ -32,6 +32,7 @@ module I2SSender(
 	reg [31:0] data2;
 	reg [5:0] counter = 0; // 0 to 63
 	reg [1:0] send_count = 0;
+	reg [4:0] req_delay = 0;
 	
 	reg audio_req = 0; // bck domain
 	wire audio_req_;
@@ -41,11 +42,7 @@ module I2SSender(
 	FF2SyncN audio_req_ack__(audio_req_ack, bck, audio_req_ack_);
 	reg audio_start = 0; // in_clk domain
 	wire audio_start_;
-	FF2SyncN audio_start__(audio_start, bck, audio_start_);
-	reg audio_start_ack = 0; // bck domain
-	wire audio_start_ack_;
-	FF2SyncP audio_start_ack__(audio_start_ack, in_clk, audio_start_ack_);
-	reg [4:0] req_delay = 0;
+	FF2SyncN audio_start__(audio_start, bck, audio_start_);	
 	
 	reg audio_on_req_mode = 0; // bck domain, sync to req_delay
 	wire audio_on_req_mode_;
