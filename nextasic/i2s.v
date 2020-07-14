@@ -5,6 +5,7 @@ module I2SSender(
 	input wire in_valid,
 	input wire [31:0] in_data,
 	input wire audio_start_in,
+	input wire audio_end_in,
 	input wire audio_22kz_in, // 1 is 22khz, 0 is 44khz
 	output reg audio_req_mode_out = 0, // request next sound samples to NeXT hardware
 	output reg audio_req_tick = 0,
@@ -17,7 +18,6 @@ module I2SSender(
 	localparam IN_SAMPLES_L = 1'b0;
 	localparam IN_SAMPLES_R = 1'b1;
 	localparam REQ_OUT_DELAY = 4;
-	localparam REQ_COUNT = 3'd7;
 
 	reg state = IN_SAMPLES_R;
 	reg data1_filled = 0;
@@ -31,8 +31,6 @@ module I2SSender(
 	reg [31:0] data1;
 	reg [31:0] data2;
 	reg [5:0] counter = 0; // 0 to 63
-	reg audio_22k = 0; // in_clk domain
-	reg audio_22k_b = 0; // bck domain
 	reg [1:0] send_count = 0;
 	
 	reg audio_req = 0; // bck domain
@@ -48,37 +46,28 @@ module I2SSender(
 	wire audio_start_ack_;
 	FF2SyncP audio_start_ack__(audio_start_ack, in_clk, audio_start_ack_);
 	reg [4:0] req_delay = 0;
-	reg [2:0] req_counter = REQ_COUNT;
-	reg audio_req_mode = 0; // bck domain
-	wire audio_req_mode_;
-	FF2SyncN audio_req_mode__(audio_req_mode, in_clk, audio_req_mode_);
 	
+	reg audio_on_req_mode = 0; // bck domain, sync to req_delay
+	wire audio_on_req_mode_;
+	FF2SyncN audio_on_req_mode__(audio_on_req_mode, in_clk, audio_on_req_mode_);
+	reg on_req_mode = 0;
+	
+	reg audio_22k = 0; // in_clk domain
+	wire audio_22k_;
+	FF2SyncN audio_22k__(audio_22k, bck, audio_22k_);
+		
 	assign lrck = state;
 	
 	always@ (negedge bck) begin
 		// request
 		if (audio_req_ack_)
 			audio_req <= 0;
-
-		if (audio_start_ && !audio_start_ack) begin
-			audio_start_ack <= 1;
-			req_counter <= 0;
-			audio_22k_b <= audio_22k;				
-		end
-		
-		if (!audio_start_) // TODO: test fix
-			audio_start_ack <= 0;
 		
 		
 		if (req_delay == 5'd21) begin // TODO: timing
 			req_delay <= 0;
 			audio_req <= 1;
-			if (req_counter < REQ_COUNT) begin	// TODO: req mode counter			
-				audio_req_mode <= 1;
-				req_counter <= req_counter + 1'b1;
-			end else begin
-				audio_req_mode <= 0;
-			end
+			audio_on_req_mode <= on_req_mode;
 		end else begin
 			req_delay <= req_delay + 1'b1;
 		end
@@ -97,10 +86,11 @@ module I2SSender(
 					if (send_count && can_serial_out) begin
 						send_count <= send_count - 1'b1; // send same data in data2 again
 						if (!data1_filled_) begin
-							req_counter <= 0;
+							on_req_mode <= audio_start_;
 						end else
-							req_counter <= REQ_COUNT; // disable audio_req_mode at next send
-					end
+							on_req_mode <= 0;
+					end else
+						on_req_mode <= audio_start_;
 						
 				end
 			endcase
@@ -128,11 +118,11 @@ module I2SSender(
 				data2_valid <= 1;
 				data1_retrieved <= 1;
 				//
-				if (audio_22k_b)
-					req_counter <= REQ_COUNT;
+				if (audio_22k_)
+					on_req_mode <= 0;
 				else
-					req_counter <= 0;
-				send_count <= audio_22k_b ? 2'd2 : 0; // 2 = 22khz, 0 = 44khz
+					on_req_mode <= audio_start_;
+				send_count <= audio_22k_ ? 2'd2 : 0; // 2 = 22khz, 0 = 44khz
 			end
 		end
 	end
@@ -147,7 +137,7 @@ module I2SSender(
 		if (!audio_req_)
 			audio_req_ack <= 0;
 			
-		audio_req_mode_out <= audio_req_mode_;
+		audio_req_mode_out <= audio_on_req_mode_;
 	end
 	
 	always@ (posedge in_clk) begin
@@ -155,10 +145,11 @@ module I2SSender(
 		if (audio_start_in) begin
 			audio_start <= 1;
 			audio_22k <= audio_22kz_in;
-		end
-
-		if (audio_start_ack_)
+		end else if (audio_end_in) begin
 			audio_start <= 0;
+			audio_22k <= audio_22kz_in;
+		end
+		
 		
 		// audio data
 		if (data1_retrieved_)
@@ -245,6 +236,7 @@ module test_I2SSender_22khz;
 	reg [31:0] data;
 	reg in_valid = 0;
 	reg audio_start = 0;
+	reg audio_end = 0;
 	wire lrck;
 	wire sout;
 	wire audio_req_tick;
@@ -259,6 +251,7 @@ module test_I2SSender_22khz;
 		in_valid,
 		data,
 		audio_start,
+		audio_end,
 		1, // 22khz
 		audio_req_mode_out,
 		audio_req_tick,
@@ -271,33 +264,37 @@ module test_I2SSender_22khz;
 	always #(OUT_CLOCK/2) out_clk = ~out_clk;
 
 	initial begin
-		in_valid = 0;
-		data = 32'b11011001100110011001100110010001;
-		
+		in_valid = 0;		
 		#(OUT_CLOCK*35*4);
 		
 		@(negedge in_clk);
 		audio_start = 1;
 		@(negedge in_clk);
 		audio_start = 0;
-		#(OUT_CLOCK*40);
 		
+		@(posedge audio_req_mode_out & audio_req_tick);
+		#(OUT_CLOCK*20);
+		data = 32'b11011001100110011001100110010001;
 		@(negedge in_clk) in_valid = 1;
 		@(negedge in_clk) in_valid = 0;
+		
 		@(posedge audio_req_mode_out & audio_req_tick);
 		#(OUT_CLOCK*20);
 		data = 32'b10011001100110011001100110010011;
 		@(negedge in_clk) in_valid = 1;
 		@(negedge in_clk) in_valid = 0;
 		
-		#(OUT_CLOCK*64*7); // lost audio samples
-		
-		// recover audio samples
+		@(posedge audio_req_mode_out & audio_req_tick);
+		#(OUT_CLOCK*20);
 		data = 32'b10011001100110011001100110000011;
 		@(negedge in_clk) in_valid = 1;
 		@(negedge in_clk) in_valid = 0;
 		
-		#(OUT_CLOCK*64*10);
+		#(OUT_CLOCK*64*1);
+		@(negedge in_clk) audio_end = 1;
+		@(negedge in_clk) audio_end = 0;
+		
+		#(OUT_CLOCK*64*11);
 		
 		$stop;
 	end

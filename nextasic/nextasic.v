@@ -50,13 +50,14 @@ module nextasic(
 		bclk
 	);
 	
-	wire is_audio_sample, audio_starts, audio_22khz, all_1_packet, power_on_packet_R1, keyboard_led_update;
+	wire is_audio_sample, audio_starts, audio_22khz, end_audio_sample, all_1_packet, power_on_packet_R1, keyboard_led_update;
 	OpDecoder op_decoder(
 		in_data[39:24],
 		data_recv,
 		is_audio_sample,
 		audio_starts,
 		audio_22khz,
+		end_audio_sample,
 		all_1_packet,
 		power_on_packet_R1,
 		keyboard_led_update
@@ -68,6 +69,7 @@ module nextasic(
 		is_audio_sample,
 		in_data[31:0],
 		audio_starts,
+		end_audio_sample,
 		audio_22khz,
 		audio_sample_request_mode,
 		audio_sample_request_tick,
@@ -109,6 +111,7 @@ module nextasic(
 	wire out_valid, power_on_packet_S1, data_loss;
 	
 	assign debug_test_pins[0] = to_mon;
+	assign debug_test_pins[1] = end_audio_sample;
 	assign debug_test_pins[2] = audio_22khz;
 	assign debug_test_pins[3] = audio_starts;
 	assign debug_test_pins[4] = audio_sample_request_tick;
