@@ -5,6 +5,7 @@ module OpDecoder(
 	input wire op_valid,
 	output reg is_audio_sample,
 	output reg audio_starts,
+	output reg audio_22khz,
 	output reg all_1_packet, // can be used for entire reset
 	output reg power_on_packet_R1,
 	output reg keyboard_led_update
@@ -16,6 +17,7 @@ module OpDecoder(
 		all_1_packet = 0;
 		power_on_packet_R1 = 0;
 		keyboard_led_update = 0;
+		audio_22khz = 0;
 		if (op_valid)
 			casex (op)
 				16'hc5ef: begin
@@ -26,6 +28,7 @@ module OpDecoder(
 				end
 				16'h1f??: begin // 22khz
 					audio_starts = 1;
+					audio_22khz = 1;
 				end
 				16'h0f??: begin // 44khz
 					audio_starts = 1;

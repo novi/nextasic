@@ -5,6 +5,7 @@ module I2SSender(
 	input wire in_valid,
 	input wire [31:0] in_data,
 	input wire audio_start_in,
+	input wire audio_22kz_in, // 1 is 22khz, 0 is 44khz
 	output reg audio_req_mode_out = 0, // request next sound samples to NeXT hardware
 	output reg audio_req_tick = 0,
 	//input wire i2s_clk, // 22.5792Mhz(or 11.2896Mhz)
@@ -25,11 +26,15 @@ module I2SSender(
 	reg data1_retrieved = 0;
 	wire data1_retrieved_;
 	FF2SyncP data1_retrieved__(data1_retrieved, in_clk, data1_retrieved_);
-	reg data2_valid = 0; // data2 has complete sample data not during shifting
+	reg data2_valid = 0; // data2 has complete sample data is not during shifting
 	reg can_serial_out = 0;
 	reg [31:0] data1;
 	reg [31:0] data2;
 	reg [5:0] counter = 0; // 0 to 63
+	reg audio_22k = 0; // in_clk domain
+	reg audio_22k_b = 0; // bck domain
+	reg [1:0] send_count = 0;
+	
 	reg audio_req = 0; // bck domain
 	wire audio_req_;
 	FF2SyncN audio_req__(audio_req, in_clk, audio_req_);
@@ -58,9 +63,10 @@ module I2SSender(
 		if (audio_start_ && !audio_start_ack) begin
 			audio_start_ack <= 1;
 			req_counter <= 0;
+			audio_22k_b <= audio_22k;				
 		end
 		
-		if (!audio_start)
+		if (!audio_start_) // TODO: test fix
 			audio_start_ack <= 0;
 		
 		
@@ -83,11 +89,19 @@ module I2SSender(
 			case (state)
 				IN_SAMPLES_R: begin
 					state <= IN_SAMPLES_L;
-					can_serial_out <= data2_valid;
+					can_serial_out <= data2_valid | (send_count > 0);
 				end
 				IN_SAMPLES_L: begin
 					state <= IN_SAMPLES_R;
 					req_delay <= 0;
+					if (send_count && can_serial_out) begin
+						send_count <= send_count - 1'b1; // send same data in data2 again
+						if (!data1_filled_) begin
+							req_counter <= 0;
+						end else
+							req_counter <= REQ_COUNT; // disable audio_req_mode at next send
+					end
+						
 				end
 			endcase
 			counter <= 0;
@@ -104,18 +118,21 @@ module I2SSender(
 		if (can_serial_out && counter <= 15) begin
 			sout <= data2[31];
 			data2[31:1] <= data2[30:0];
-			data2[0] <= 0;
-			data2_valid <= 0; // data2 is partial data, shifing...
+			data2[0] <= data2[31];
+			data2_valid <= 0; // data2 is partial data, is shifing...
 		end else begin
 			sout <= 0;
-			if (state == IN_SAMPLES_R && !data2_valid) begin
-				if (data1_filled) begin
-					data2 <= data1;
-					data2_valid <= 1;
-					data1_retrieved <= 1;
-					//
+			if (state == IN_SAMPLES_R && send_count == 0 && !data2_valid && data1_filled_) begin
+				// get next data
+				data2 <= data1;
+				data2_valid <= 1;
+				data1_retrieved <= 1;
+				//
+				if (audio_22k_b)
+					req_counter <= REQ_COUNT;
+				else
 					req_counter <= 0;
-				end
+				send_count <= audio_22k_b ? 2'd2 : 0; // 2 = 22khz, 0 = 44khz
 			end
 		end
 	end
@@ -135,8 +152,10 @@ module I2SSender(
 	
 	always@ (posedge in_clk) begin
 		// request
-		if (audio_start_in)
+		if (audio_start_in) begin
 			audio_start <= 1;
+			audio_22k <= audio_22kz_in;
+		end
 
 		if (audio_start_ack_)
 			audio_start <= 0;
@@ -180,6 +199,7 @@ module test_I2SSender;
 		in_valid,
 		data,
 		audio_start,
+		0,
 		audio_req_mode_out,
 		audio_req_tick,
 		out_clk, // bck
@@ -217,5 +237,73 @@ module test_I2SSender;
 	end
 	
 endmodule
+
+module test_I2SSender_22khz;
+
+	reg in_clk = 0;
+	reg out_clk = 0; // bck
+	reg [31:0] data;
+	reg in_valid = 0;
+	reg audio_start = 0;
+	wire lrck;
+	wire sout;
+	wire audio_req_tick;
+	wire audio_req_mode_out;
+
+	
+	parameter OUT_CLOCK = (100*4);
+	parameter IN_CLOCK = 200;
+
+	I2SSender sender(
+		in_clk,
+		in_valid,
+		data,
+		audio_start,
+		1, // 22khz
+		audio_req_mode_out,
+		audio_req_tick,
+		out_clk, // bck
+		lrck,
+		sout
+	);
+	
+	always #(IN_CLOCK/2) in_clk = ~in_clk;
+	always #(OUT_CLOCK/2) out_clk = ~out_clk;
+
+	initial begin
+		in_valid = 0;
+		data = 32'b11011001100110011001100110010001;
+		
+		#(OUT_CLOCK*35*4);
+		
+		@(negedge in_clk);
+		audio_start = 1;
+		@(negedge in_clk);
+		audio_start = 0;
+		#(OUT_CLOCK*40);
+		
+		@(negedge in_clk) in_valid = 1;
+		@(negedge in_clk) in_valid = 0;
+		@(posedge audio_req_mode_out & audio_req_tick);
+		#(OUT_CLOCK*20);
+		data = 32'b10011001100110011001100110010011;
+		@(negedge in_clk) in_valid = 1;
+		@(negedge in_clk) in_valid = 0;
+		
+		#(OUT_CLOCK*64*7); // lost audio samples
+		
+		// recover audio samples
+		data = 32'b10011001100110011001100110000011;
+		@(negedge in_clk) in_valid = 1;
+		@(negedge in_clk) in_valid = 0;
+		
+		#(OUT_CLOCK*64*10);
+		
+		$stop;
+	end
+	
+endmodule
+
+
 
 
