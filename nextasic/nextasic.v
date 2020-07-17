@@ -26,7 +26,9 @@ module nextasic(
 	input wire debug_sin,
 	input wire debug_sin_start,
 
-	output [9:0] debug_test_pins_out
+	output [9:0] debug_test_pins_out,
+	input wire debug_sw_0,
+	input wire debug_sw_1
 );	
 	wire [9:0] debug_test_pins;
 	
@@ -50,9 +52,11 @@ module nextasic(
 		bclk
 	);
 	
-	wire is_audio_sample, audio_starts, audio_22khz, end_audio_sample, all_1_packet, power_on_packet_R1, keyboard_led_update;
+	wire is_audio_sample, audio_starts, audio_22khz, end_audio_sample, all_1_packet, power_on_packet_R1, keyboard_led_update,
+		 attenuation_data_valid;
+	wire [7:0] attenuation_data;
 	OpDecoder op_decoder(
-		in_data[39:24],
+		in_data[39:16],
 		data_recv,
 		is_audio_sample,
 		audio_starts,
@@ -60,7 +64,9 @@ module nextasic(
 		end_audio_sample,
 		all_1_packet,
 		power_on_packet_R1,
-		keyboard_led_update
+		keyboard_led_update,
+		attenuation_data_valid,
+		attenuation_data
 	);
 	
 	wire audio_sample_request_mode, audio_sample_request_tick;
@@ -92,6 +98,19 @@ module nextasic(
 		//debug_test_pins[4:0]
 	);
 	
+	wire is_muted;
+	wire [5:0] lch_db;
+	wire [5:0] rch_db;
+	wire [7:0] att_debug_out;
+	Attenuation att(
+		mon_clk,
+		attenuation_data_valid,
+		attenuation_data,
+		is_muted,
+		lch_db,
+		rch_db
+	);
+	
 	// assign debug_test_pins[0] = data_recv;
 	// assign debug_test_pins[2] = is_audio_sample;
 	// assign debug_test_pins[1] = all_1_packet;
@@ -112,16 +131,22 @@ module nextasic(
 	wire [39:0] out_data;
 	wire out_valid, power_on_packet_S1, data_loss;
 	
-	assign debug_test_pins[0] = to_mon;
-	assign debug_test_pins[1] = end_audio_sample;
-	assign debug_test_pins[2] = audio_22khz;
-	assign debug_test_pins[3] = audio_starts;
-	assign debug_test_pins[4] = audio_sample_request_tick;
-	assign debug_test_pins[5] = audio_sample_request_mode;
-	assign debug_test_pins[6] = is_audio_sample;
-	assign debug_test_pins[7] = keyboard_data_ready;
-	assign debug_test_pins[8] = keyboard_led_update;
-	assign debug_test_pins[9] = from_mon;
+	// assign debug_test_pins[0] = to_mon;
+	assign debug_test_pins[5:0] = debug_sw_0 ? lch_db : rch_db;
+	// assign debug_test_pins[1] = end_audio_sample;
+	// assign debug_test_pins[2] = audio_22khz;
+	// assign debug_test_pins[3] = audio_starts;
+	// assign debug_test_pins[4] = audio_sample_request_tick;
+	// assign debug_test_pins[5] = audio_sample_request_mode;
+	// assign debug_test_pins[6] = is_audio_sample;
+	// assign debug_test_pins[6] = attenuation_data_valid;
+	// assign debug_test_pins[8] = keyboard_led_update;
+	assign debug_test_pins[6] = is_muted;
+	// assign debug_test_pins[7:0] = att_debug_out;
+	assign debug_test_pins[7] = attenuation_data_valid;
+	// assign debug_test_pins[9] = mon_clk;
+	assign debug_test_pins[8] = from_mon;
+	assign debug_test_pins[9] = to_mon;
 	
 	Delay #(.DELAY(14000), .W(14)) power_on_packet_delay( // 2.8ms delay
 		mon_clk,

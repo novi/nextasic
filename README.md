@@ -11,5 +11,5 @@ Verilog HDL implementation of ASIC for NeXT Sound Box hardware.
 |Keyboard LEDs|Done|Yes|
 |Sound play 44kHz|Done|Yes|
 |Sound play 22kHz|Done|Yes|
-|Sound attenuation (volume)|Not yet|Yes|
+|Sound attenuation (volume)|Done|Yes|
 |Microphone input|Not yet|No|

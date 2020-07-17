@@ -43,17 +43,6 @@ set_global_assignment -name TOP_LEVEL_ENTITY nextasic
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 19.1.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "14:43:18  JULY 10, 2020"
 set_global_assignment -name LAST_QUARTUS_VERSION "19.1.0 Lite Edition"
-set_global_assignment -name VERILOG_FILE util.v
-set_global_assignment -name VERILOG_FILE sender_cdc.v
-set_global_assignment -name VERILOG_FILE sender.v
-set_global_assignment -name VERILOG_FILE receiver.v
-set_global_assignment -name VERILOG_FILE openc.v
-set_global_assignment -name VERILOG_FILE opdec.v
-set_global_assignment -name VERILOG_FILE nextasic.v
-set_global_assignment -name VERILOG_FILE keyboard.v
-set_global_assignment -name VERILOG_FILE i2s.v
-set_global_assignment -name VERILOG_FILE debug_data_sender.v
-set_global_assignment -name VERILOG_FILE debug_data_receiver.v
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
@@ -125,6 +114,18 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to debug_sig_on
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to debug_sin
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to debug_sin_start
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to debug_sout
+set_global_assignment -name VERILOG_FILE attenuation.v
+set_global_assignment -name VERILOG_FILE util.v
+set_global_assignment -name VERILOG_FILE sender_cdc.v
+set_global_assignment -name VERILOG_FILE sender.v
+set_global_assignment -name VERILOG_FILE receiver.v
+set_global_assignment -name VERILOG_FILE openc.v
+set_global_assignment -name VERILOG_FILE opdec.v
+set_global_assignment -name VERILOG_FILE nextasic.v
+set_global_assignment -name VERILOG_FILE keyboard.v
+set_global_assignment -name VERILOG_FILE i2s.v
+set_global_assignment -name VERILOG_FILE debug_data_sender.v
+set_global_assignment -name VERILOG_FILE debug_data_receiver.v
 set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_receiver.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE debug_data_sender.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE i2s.v -section_id nextasic
@@ -134,4 +135,9 @@ set_global_assignment -name EDA_TEST_BENCH_FILE openc.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE receiver.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE sender.v -section_id nextasic
 set_global_assignment -name EDA_TEST_BENCH_FILE util.v -section_id nextasic
+set_global_assignment -name EDA_TEST_BENCH_FILE attenuation.v -section_id nextasic
+set_location_assignment PIN_24 -to debug_sw_0
+set_location_assignment PIN_25 -to debug_sw_1
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to debug_sw_0
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to debug_sw_1
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

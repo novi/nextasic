@@ -192,8 +192,7 @@ module test_Keyboard;
 		is_mouse_data,
 		keyboard_data,
 		from_kb,
-		to_kb,
-		
+		to_kb
 	);
 	
 	always #(CLOCK/2) clk = ~clk;
