@@ -5,18 +5,19 @@ module Attenuation(
 	input wire attenuation_data_valid,
 	input wire [7:0] data_in, // attenuation_data from NeXT hardware
 	output reg is_muted = 1,
-	output reg [5:0] lch_db = 6'd43, // 43(-86dB) to 0(0dB)
-	output reg [5:0] rch_db = 6'd43
-	// TODO: output reg db_val_valid = 0
+	output reg [5:0] lch_db = 0, // 43(-86dB) to 0(0dB)
+	output reg [5:0] rch_db = 0,
+	output wire db_val_valid
 	//output wire [7:0] debug_out
-	//output wire value_updated, // TODO:
+	//output wire value_updated
 );
 
-	localparam VAL1_0 = 8'h02;
-	localparam VAL1_1 = 8'h06;
+	localparam VAL1_0 = 8'h?2;
+	localparam VAL1_1 = 8'h?6;
 	//localparam VAL0_0 = 8'h00;
-	localparam VAL0_1 = 8'h04;
+	localparam VAL0_1 = 8'h?4;
 	
+	// state definition
 	localparam S_VAL1_0 = 3'd1;
 	localparam S_VAL1_1 = 3'd2;
 	localparam S_VAL0_0_OR_S_0 = 3'd0;
@@ -39,14 +40,19 @@ module Attenuation(
 	wire [5:0] att_data;
 	assign att_data = buff[5:0];
 	
+	reg db_val_valid_l = 0;
+	reg db_val_valid_r = 0;
+	
+	assign db_val_valid = db_val_valid_l & db_val_valid_r;
+	
 	// assign debug_out = buff[7:0];
 	
 	reg [2:0] valid_state;
 	always@ (*) begin
-		case ( (data_in & 8'h0f) )
-			0:
+		casex (data_in)
+			8'b000?0000: // ? is mute flag
 				valid_state = S_VAL0_0_OR_S_0;
-			8'h01:
+			8'h?1:
 				valid_state = S_1;
 			VAL1_0:
 				valid_state = S_VAL1_0;
@@ -58,26 +64,13 @@ module Attenuation(
 				valid_state = S_INVALID;
 		endcase
 	end
-	
-	// wire [7:0] data_;
-	// assign data_ = data_in & 8'h0f;
-	// wire [2:0] valid_state;
-	// assign valid_state = (data_ == 0) ? S_VAL0_0_OR_S_0 : (
-	// 		(data_ == 8'h01) ? S_1 : (
-	// 			(data_ == VAL1_0) ? S_VAL1_0 : (
-	// 				(data_ == VAL1_1) ? S_VAL1_1 : (
-	// 					(data_ == VAL0_1) ? S_VAL0_1 : S_INVALID
-	// 				)
-	// 			)
-	// 		)
-	// 	);
 		
 	wire is_eof_packet;
 	assign is_eof_packet = (count == 4'd11);
 
 	always@ (posedge clk) begin
 		if (attenuation_data_valid) begin
-			is_muted <= (data_in & 8'h10) ? 1'b1 : 1'b0;
+			is_muted <= data_in[4]; // here is mute flag
 			case (valid_state)
 				S_VAL0_0_OR_S_0: begin
 					if (!is_eof_packet && state != S_VAL0_1 && state != S_VAL1_1) begin
@@ -100,21 +93,25 @@ module Attenuation(
 				// buff[10:8] is header will be 111
 				S_1: if (initialized && buff[10:8] == 3'b111 && state == S_VAL0_0_OR_S_0 && is_eof_packet) begin
 					case (cmd)
-						CMD_L_CH:
+						CMD_L_CH: begin
 							lch_db <= att_data;
-						CMD_R_CH:
+							db_val_valid_l <= 1;
+						end
+						CMD_R_CH: begin
 							rch_db <= att_data;
+							db_val_valid_r <= 1;
+						end
 						CMD_BOTH_CH: begin
 							lch_db <= att_data;
 							rch_db <= att_data;
+							db_val_valid_l <= 1;
+							db_val_valid_r <= 1;
 						end
 						CMD_INVALID: begin						
 						end
 					endcase
 					initialized <= 0;
 					count <= 0;
-				end
-				default: begin
 				end
 			endcase	
 			state <= valid_state;
@@ -134,6 +131,7 @@ module test_Attenuation;
 	wire is_muted;
 	wire [5:0] lch_db;
 	wire [5:0] rch_db;
+	wire db_val_valid;
 
 	parameter CLOCK = 100;
 
@@ -143,7 +141,8 @@ module test_Attenuation;
 		data,
 		is_muted,
 		lch_db,
-		rch_db
+		rch_db,
+		db_val_valid
 	);
 	
 	always #(CLOCK/2) clk = ~clk;
@@ -157,7 +156,7 @@ module test_Attenuation;
 			attenuation_data_valid = 1;
 			@(negedge clk);
 			attenuation_data_valid = 0;
-			#(CLOCK*5);
+			#(CLOCK*3);
 		end
 	endtask
 	
@@ -165,6 +164,52 @@ module test_Attenuation;
 		#(CLOCK*5);
 		PacketSend(8'h17); // mute packet
 		
+		
+		// test for att L ch
+		PacketSend(8'h00);
+		
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1, header
+		
+		PacketSend(8'h00);
+		PacketSend(8'h04); // 0
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1, cmd
+		
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1
+		PacketSend(8'h00);
+		PacketSend(8'h04); // 0
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1
+		PacketSend(8'h00);
+		PacketSend(8'h04); // 0
+		PacketSend(8'h00);
+		PacketSend(8'h04); // 0
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1, att data
+		
+		PacketSend(8'h00);
+		PacketSend(8'h01); // commit 
+		PacketSend(8'h00);
+		
+		// test with invalid packet
+		PacketSend(8'h00);
+		PacketSend(8'h00);
+		
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1
+		PacketSend(8'h02);
+		PacketSend(8'h06); // 1, header
+		
+		PacketSend(8'h04); // invalid packet
+		PacketSend(8'h20);
 		
 		// test for att both ch
 		PacketSend(8'h00);
@@ -196,20 +241,6 @@ module test_Attenuation;
 		
 		PacketSend(8'h00);
 		PacketSend(8'h01); // commit 
-		PacketSend(8'h00);
-		
-		// test with invalid packet
-		PacketSend(8'h00);
-		PacketSend(8'h00);
-		
-		PacketSend(8'h02);
-		PacketSend(8'h06); // 1
-		PacketSend(8'h02);
-		PacketSend(8'h06); // 1
-		PacketSend(8'h02);
-		PacketSend(8'h06); // 1, header
-		
-		PacketSend(8'h04); // invalid packet
 		PacketSend(8'h00);
 		
 		$stop;

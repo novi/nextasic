@@ -98,7 +98,7 @@ module nextasic(
 		//debug_test_pins[4:0]
 	);
 	
-	wire is_muted;
+	wire is_muted, db_val_valid;
 	wire [5:0] lch_db;
 	wire [5:0] rch_db;
 	wire [7:0] att_debug_out;
@@ -108,7 +108,8 @@ module nextasic(
 		attenuation_data,
 		is_muted,
 		lch_db,
-		rch_db
+		rch_db,
+		db_val_valid
 	);
 	
 	// assign debug_test_pins[0] = data_recv;
@@ -145,7 +146,7 @@ module nextasic(
 	// assign debug_test_pins[7:0] = att_debug_out;
 	assign debug_test_pins[7] = attenuation_data_valid;
 	// assign debug_test_pins[9] = mon_clk;
-	assign debug_test_pins[8] = from_mon;
+	assign debug_test_pins[8] = db_val_valid;
 	assign debug_test_pins[9] = to_mon;
 	
 	Delay #(.DELAY(14000), .W(14)) power_on_packet_delay( // 2.8ms delay
