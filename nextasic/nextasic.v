@@ -26,12 +26,12 @@ module nextasic(
 	input wire debug_sin,
 	input wire debug_sin_start,
 
-	output [9:0] debug_test_pins_out,
+	output wire [9:0] debug_test_pins_out,
 	input wire debug_sw_0,
 	input wire debug_sw_1
 );	
 	wire [9:0] debug_test_pins;
-	
+    
 	assign mclk_out = mclk;
 	//assign debug_test_pins_out = ~debug_test_pins;
 	assign debug_test_pins_out = debug_test_pins;
