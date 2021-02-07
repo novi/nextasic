@@ -12,4 +12,4 @@ Verilog HDL implementation of ASIC for NeXT Sound Box hardware.
 |Sound play 44kHz|Done|Yes|
 |Sound play 22kHz|Done|Yes|
 |Sound attenuation (volume)|Done|Yes|
-|Microphone input|Not yet|No|
+|Microphone input|See [this](https://github.com/novi/ossc/pull/2/files)|Yes|
