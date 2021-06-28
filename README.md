@@ -1,3 +1,6 @@
+
+This project is migrated to [ossc/next-soundbox](https://github.com/novi/ossc/tree/next-soundbox).
+
 # nextasic
 
 Verilog HDL implementation of ASIC for NeXT Sound Box hardware.
